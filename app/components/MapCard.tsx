@@ -46,7 +46,7 @@ export default function MapCard({ geojson, dongCosts, contractType, selected, on
         <span className="text-xs text-muted">{contractType} 중앙값 · 동을 눌러 자세히 보기</span>
       </header>
 
-      <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="grid gap-4 p-4 2xl:grid-cols-[minmax(0,1fr)_240px]">
         <div className="flex min-w-0 flex-col gap-3">
           <div className="relative z-0 h-[360px] lg:h-[420px]">
             <DongMap geojson={geojson} fills={fills} values={values} selected={selected} onSelect={onSelect} />

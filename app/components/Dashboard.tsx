@@ -71,7 +71,7 @@ export default function Dashboard({ policies, dongMedians, geojson }: Props) {
         ))}
       </ol>
 
-      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         {/* 좌: 내 조건 */}
         <aside className="flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto">
           <ConditionForm value={conditions} onChange={setConditions} dongMedians={dongMedians} onDongChange={selectDong} />

@@ -40,7 +40,7 @@ Next.js 16(App Router) + TypeScript + Tailwind CSS 4. 이 Next.js 버전은 기�
 
 ## 지도
 
-Leaflet + react-leaflet, OpenStreetMap 타일(회색 필터). SSR에서 window가 없어 `next/dynamic`(`ssr: false`)로 불러온다. 처음 열 때 전체 동 영역에 맞추고 축소 0.5단계·이동 20%까지 제한.
+Leaflet + react-leaflet, OpenStreetMap 타일(회색 필터). SSR에서 window가 없어 `next/dynamic`(`ssr: false`)로 불러온다. 처음 열 때 전체 동 영역에 맞추고, 그보다 넓게 축소할 수 없으며 이동은 영역 밖 8%까지로 제한. 자치구 바깥은 동 경계로 구멍을 뚫은 마스크로 흐리게 가린다(경계 파일을 바꾸면 모양이 따라옴).
 
 ## 개발 환경 주의
 

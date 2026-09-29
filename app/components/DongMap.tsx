@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import type { FeatureCollection, Polygon } from "geojson";
 import L, { type LatLngBounds, type Path, type PathOptions } from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
-import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { GeoJSON, MapContainer, Polygon as LeafletPolygon, TileLayer, useMap } from "react-leaflet";
 import { formatManwon } from "@/lib/format";
 import type { DongFeatureProps } from "@/lib/types";
 
@@ -20,9 +20,9 @@ type Props = {
 
 const FIT_PADDING: [number, number] = [8, 8];
 /** 경계 밖으로 끌 수 있는 여유(경계 크기 대비 비율) */
-const PAN_MARGIN = 0.2;
-/** 처음 맞춘 줌보다 이만큼까지만 축소 허용 */
-const ZOOM_OUT_LIMIT = 0.5;
+const PAN_MARGIN = 0.08;
+/** 처음 맞춘 줌보다 이만큼까지만 축소 허용 (0이면 자치구보다 넓게 못 봄) */
+const ZOOM_OUT_LIMIT = 0;
 const MAX_ZOOM = 17;
 /** 라벨 금액이 바뀔 때 숫자가 변하는 시간(ms) */
 const LABEL_TWEEN_MS = 500;
@@ -35,6 +35,24 @@ function boundsOf(geojson: FeatureCollection<Polygon>): LatLngBounds {
 
 const labelHtml = (dong: string, value: number | undefined) =>
   `<strong>${dong}</strong><br/><span>${value === undefined ? "-" : formatManwon(value, 1)}</span>`;
+
+/**
+ * 자치구 바깥을 가리는 마스크: 넓은 사각형에서 각 동 경계를 구멍으로 뚫는다.
+ * 경계 파일만 바꾸면 모양이 따라온다.
+ */
+function outsideMask(geojson: FeatureCollection<Polygon>, bounds: LatLngBounds): L.LatLngExpression[][] {
+  const outer = bounds.pad(3);
+  const sw = outer.getSouthWest();
+  const ne = outer.getNorthEast();
+  const frame: L.LatLngExpression[] = [
+    [sw.lat, sw.lng],
+    [ne.lat, sw.lng],
+    [ne.lat, ne.lng],
+    [sw.lat, ne.lng],
+  ];
+  const holes = geojson.features.map((f) => f.geometry.coordinates[0].map(([lng, lat]) => [lat, lng] as L.LatLngTuple));
+  return [frame, ...holes];
+}
 
 const dongOf = (layer: L.Layer) => ((layer as L.Polygon).feature?.properties as DongFeatureProps).dong;
 
@@ -52,6 +70,7 @@ function FitToDistrict({ bounds }: { bounds: LatLngBounds }) {
 
 export default function DongMap({ geojson, fills, values, selected, onSelect }: Props) {
   const bounds = useMemo(() => boundsOf(geojson), [geojson]);
+  const mask = useMemo(() => outsideMask(geojson, bounds), [geojson, bounds]);
   const layerRef = useRef<L.GeoJSON | null>(null);
   /** 라벨에 지금 표시 중인 값(애니메이션 시작점) */
   const shownRef = useRef<Record<string, number>>({});
@@ -137,6 +156,12 @@ export default function DongMap({ geojson, fills, values, selected, onSelect }: 
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         className="dong-map-tiles"
+      />
+      {/* 자치구 바깥 가림 (동 폴리곤보다 아래) */}
+      <LeafletPolygon
+        positions={mask}
+        interactive={false}
+        pathOptions={{ stroke: false, fillColor: "#f3f4f6", fillOpacity: 0.78 }}
       />
       <GeoJSON
         ref={layerRef}
