@@ -6,13 +6,12 @@
 export const ORDERED = ["#f9e03f", "#5bd97f", "#24aeb5", "#0d7dd4", "#6c3cab", "#72034a", "#421201"] as const;
 
 /**
- * 순위(분위) 기준 구간 번호(0부터, 저렴한 쪽이 0).
- * 값 간격이 고르지 않아도 동마다 서로 다른 색이 돌아가게 순위로 나눈다. 같은 값은 같은 구간.
+ * 순위 기준 구간 번호(0부터, 저렴한 쪽이 0)를 항목마다 매긴다.
+ * 값 간격이 고르지 않아도, 값이 같아도 항목마다 다른 색이 돌아가게 순위로 나눈다.
+ * 값이 같으면 이름 가나다순으로 앞선 쪽이 더 밝은(저렴한 쪽) 색.
  */
-export function rankClass(value: number, values: number[], n: number = ORDERED.length): number {
-  const sorted = [...new Set(values)].sort((a, b) => a - b);
-  if (sorted.length <= 1) return Math.floor(n / 2);
-  const rank = sorted.findIndex((v) => v >= value);
-  const idx = rank === -1 ? sorted.length - 1 : rank;
-  return Math.round((idx / (sorted.length - 1)) * (n - 1));
+export function rankClasses(values: Record<string, number>, n: number = ORDERED.length): Record<string, number> {
+  const keys = Object.keys(values).sort((a, b) => values[a] - values[b] || a.localeCompare(b, "ko"));
+  if (keys.length === 1) return { [keys[0]]: Math.floor(n / 2) };
+  return Object.fromEntries(keys.map((k, i) => [k, Math.round((i / (keys.length - 1)) * (n - 1))]));
 }

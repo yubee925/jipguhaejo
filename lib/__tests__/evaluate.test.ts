@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeDongMedians } from "../data";
 import { costByDong } from "../evaluate";
-import { rankClass } from "../scale";
+import { rankClasses } from "../scale";
 import { loadPolicyData, loadRentData } from "./fixtures";
 
 describe("costByDong", () => {
@@ -23,21 +23,26 @@ describe("costByDong", () => {
   });
 });
 
-describe("rankClass", () => {
+describe("rankClasses", () => {
   it("값 간격이 고르지 않아도 7개 동이 7개 색에 하나씩", () => {
-    const values = [50, 52, 55, 60, 61, 80, 120];
-    expect(values.map((v) => rankClass(v, values))).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    const values = { a: 50, b: 52, c: 55, d: 60, e: 61, f: 80, g: 120 };
+    expect(rankClasses(values)).toEqual({ a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6 });
   });
 
-  it("입력 순서와 무관", () => {
-    const values = [155.8, 75.8, 117.5, 91.7, 101.7];
-    expect(values.map((v) => rankClass(v, values, 5))).toEqual([4, 0, 3, 1, 2]);
+  it("값이 같아도 서로 다른 색, 가나다순으로 앞선 동이 더 밝은 쪽", () => {
+    // 샘플 월세 기준: 군자동·자양동 모두 81.7
+    const values = { 능동: 29.2, 중곡동: 36.3, 구의동: 47.5, 자양동: 81.7, 군자동: 81.7, 광장동: 101.7, 화양동: 139.2 };
+    const c = rankClasses(values);
+    expect(c["군자동"]).toBe(3);
+    expect(c["자양동"]).toBe(4);
+    expect(new Set(Object.values(c)).size).toBe(7);
   });
 
-  it("같은 값은 같은 구간, 값이 하나뿐이면 가운데", () => {
-    const values = [10, 10, 20];
-    expect(rankClass(10, values)).toBe(0);
-    expect(rankClass(20, values)).toBe(6);
-    expect(rankClass(5, [5, 5])).toBe(3);
+  it("구간 수가 동 수보다 적으면 순위를 비율로 나눈다", () => {
+    expect(rankClasses({ a: 1, b: 2, c: 3 }, 5)).toEqual({ a: 0, b: 2, c: 4 });
+  });
+
+  it("동이 하나면 가운데", () => {
+    expect(rankClasses({ a: 5 })).toEqual({ a: 3 });
   });
 });

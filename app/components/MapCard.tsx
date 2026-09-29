@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import type { FeatureCollection, Polygon } from "geojson";
 import type { DongCost } from "@/lib/evaluate";
 import { formatManwon } from "@/lib/format";
-import { ORDERED, rankClass } from "@/lib/scale";
+import { ORDERED, rankClasses } from "@/lib/scale";
 import { DISTRICT } from "@/lib/region";
 import type { ContractType, DongFeatureProps } from "@/lib/types";
 
@@ -28,8 +28,8 @@ export default function MapCard({ geojson, dongCosts, contractType, selected, on
   const min = Math.min(...nums);
   const max = Math.max(...nums);
   // 순위 기준: 가장 저렴한 동 노랑 → 가장 비싼 동 암갈색
-  const colorOf = (v: number) => ORDERED[rankClass(v, nums)];
-  const fills = Object.fromEntries(Object.entries(values).map(([dong, v]) => [dong, colorOf(v)]));
+  const classes = rankClasses(values);
+  const fills = Object.fromEntries(Object.entries(classes).map(([dong, c]) => [dong, ORDERED[c]]));
   const ranked = [...dongCosts].sort((a, b) => a.cost.monthly - b.cost.monthly);
 
   return (
@@ -76,7 +76,7 @@ export default function MapCard({ geojson, dongCosts, contractType, selected, on
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: colorOf(cost.monthly) }} />
+                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: fills[dong] }} />
                   {dong}
                 </span>
                 <span className="tabular-nums">{formatManwon(cost.monthly, 1)}</span>
