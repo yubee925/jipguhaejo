@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { parseConditions, type Conditions } from "@/lib/conditions";
 import { computeDongMedians, loadPolicyData, loadRentData } from "@/lib/data";
+import { DISTRICT } from "@/lib/region";
 import {
   buildExplainContext,
   contextToPrompt,
@@ -13,7 +14,7 @@ import {
 const MODEL = "claude-opus-5";
 const MAX_QUESTION_LENGTH = 300;
 
-const SYSTEM_PROMPT = `당신은 서울 강남구 주거비 대시보드의 해설 도우미입니다.
+const SYSTEM_PROMPT = `당신은 서울 ${DISTRICT} 주거비 대시보드의 해설 도우미입니다.
 <calculation> 안의 수치만 근거로 사용자의 질문에 한국어로 답하세요.
 - 새 수치를 추정하거나 만들지 마세요. 계산에 없는 정보(실제 시세, 최신 정책 공고 등)는 모른다고 말하세요.
 - 데이터는 샘플이고 정책 수치는 예시입니다. 판단에 영향을 줄 때만 짧게 언급하세요.

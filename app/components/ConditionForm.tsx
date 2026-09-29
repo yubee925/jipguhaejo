@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { formatManwon } from "@/lib/format";
 import type { Conditions } from "@/lib/conditions";
+import { DISTRICT } from "@/lib/region";
 import type { DongMedians } from "@/lib/types";
 import Card from "./Card";
 
@@ -92,7 +93,7 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
 
         <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">매물 조건</legend>
-          <Field label="지역 (강남구)">
+          <Field label={`지역 (${DISTRICT})`}>
             <select className={inputClass} value={value.dong} onChange={(e) => onDongChange(e.target.value)}>
               {Object.keys(dongMedians).map((d) => (
                 <option key={d}>{d}</option>

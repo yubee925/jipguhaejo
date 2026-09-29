@@ -25,14 +25,14 @@ describe("median", () => {
 describe("medianByDong", () => {
   it("동별로 묶어 개수와 중앙값을 반환한다", () => {
     const records = [
-      makeRecord({ dong: "역삼동", deposit: 1000 }),
-      makeRecord({ dong: "역삼동", deposit: 3000 }),
-      makeRecord({ dong: "대치동", deposit: 5000 }),
-      makeRecord({ dong: "역삼동", deposit: 2000 }),
+      makeRecord({ dong: "화양동", deposit: 1000 }),
+      makeRecord({ dong: "화양동", deposit: 3000 }),
+      makeRecord({ dong: "구의동", deposit: 5000 }),
+      makeRecord({ dong: "화양동", deposit: 2000 }),
     ];
     expect(medianByDong(records, (r) => r.deposit)).toEqual([
-      { dong: "대치동", count: 1, median: 5000 },
-      { dong: "역삼동", count: 3, median: 2000 },
+      { dong: "구의동", count: 1, median: 5000 },
+      { dong: "화양동", count: 3, median: 2000 },
     ]);
   });
 
@@ -40,9 +40,10 @@ describe("medianByDong", () => {
     expect(medianByDong([], (r) => r.deposit)).toEqual([]);
   });
 
-  it("샘플 데이터: 5개 동, 동별 40건", () => {
+  it("샘플 데이터: 광진구 7개 동, 동별 28~29건", () => {
     const result = medianByDong(loadRentData(), (r) => r.deposit);
-    expect(result.map((d) => d.dong)).toEqual(["논현동", "대치동", "삼성동", "역삼동", "청담동"]);
-    expect(result.every((d) => d.count === 40 && d.median > 0)).toBe(true);
+    expect(result.map((d) => d.dong)).toEqual(["광장동", "구의동", "군자동", "능동", "자양동", "중곡동", "화양동"]);
+    expect(result.reduce((s, d) => s + d.count, 0)).toBe(200);
+    expect(result.every((d) => d.count >= 28 && d.count <= 29 && d.median > 0)).toBe(true);
   });
 });

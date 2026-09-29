@@ -5,6 +5,7 @@ import type { FeatureCollection, Polygon } from "geojson";
 import type { DongCost } from "@/lib/evaluate";
 import { formatManwon } from "@/lib/format";
 import { ORDERED, rankClass } from "@/lib/scale";
+import { DISTRICT } from "@/lib/region";
 import type { ContractType, DongFeatureProps } from "@/lib/types";
 
 // Leaflet은 window가 필요해 SSR 제외
@@ -26,7 +27,7 @@ export default function MapCard({ geojson, dongCosts, contractType, selected, on
   const nums = Object.values(values);
   const min = Math.min(...nums);
   const max = Math.max(...nums);
-  // 순위 기준: 가장 저렴한 동 노랑 → 가장 비싼 동 보라
+  // 순위 기준: 가장 저렴한 동 노랑 → 가장 비싼 동 암갈색
   const colorOf = (v: number) => ORDERED[rankClass(v, nums)];
   const fills = Object.fromEntries(Object.entries(values).map(([dong, v]) => [dong, colorOf(v)]));
   const ranked = [...dongCosts].sort((a, b) => a.cost.monthly - b.cost.monthly);
@@ -84,7 +85,7 @@ export default function MapCard({ geojson, dongCosts, contractType, selected, on
           ))}
         </ul>
         <p className="text-[11px] leading-relaxed text-muted">
-          각 동의 {contractType} 중앙값 매물에 내 조건으로 매칭된 정책을 반영한 금액입니다. 색은 5개 동 중 순위로, 저렴할수록 노랑·비쌀수록 보라입니다. 경계는 임시 사각형입니다.
+          각 동의 {contractType} 중앙값 매물에 내 조건으로 매칭된 정책을 반영한 금액입니다. 색은 {DISTRICT} {ranked.length}개 동 중 순위로, 저렴할수록 노랑·비쌀수록 어두운 색입니다. 경계는 임시 사각형입니다.
         </p>
       </div>
     </section>

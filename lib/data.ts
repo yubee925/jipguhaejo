@@ -22,7 +22,7 @@ export const loadRentData = () => loadCsv<RentRecord>("rent_data.csv");
 export const loadPolicyData = () => loadCsv<Policy>("policy_data.csv");
 
 export const loadDongGeoJson = (): FeatureCollection<Polygon, DongFeatureProps> =>
-  JSON.parse(readFileSync(join(DATA_DIR, "gangnam_dong.geojson"), "utf8"));
+  JSON.parse(readFileSync(join(DATA_DIR, "dong_boundaries.geojson"), "utf8"));
 
 /** 동 × 계약유형별 보증금·월세 중앙값 */
 export function computeDongMedians(records: RentRecord[]): DongMedians {

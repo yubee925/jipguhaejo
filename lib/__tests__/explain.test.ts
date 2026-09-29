@@ -10,7 +10,7 @@ const base: Conditions = {
   age: "27",
   annualIncome: "3000",
   isNewlywed: false,
-  dong: "대치동",
+  dong: "화양동",
   contractType: "월세",
   deposit: "1000",
   monthlyRent: "50",
@@ -57,14 +57,14 @@ describe("buildExplainContext / templateAnswer", () => {
     expect(ctx.policies.filter((p) => p.applied)).toHaveLength(2);
   });
 
-  it("동 순위는 5개 동, 저렴한 순", () => {
-    expect(ctx.ranking).toHaveLength(5);
+  it("동 순위는 광진구 7개 동, 저렴한 순", () => {
+    expect(ctx.ranking).toHaveLength(7);
     const values = ctx.ranking.map((d) => d.cost.monthly);
     expect([...values].sort((a, b) => a - b)).toEqual(values);
   });
 
   it("템플릿 답변에 핵심 수치가 들어간다", () => {
-    expect(templateAnswer("summary", ctx)).toContain("대치동");
+    expect(templateAnswer("summary", ctx)).toContain("광진구 화양동");
     expect(templateAnswer("policy", ctx)).toContain("신혼부부 임차보증금 이자지원: 신혼부부 대상");
     expect(templateAnswer("compare_type", ctx)).toMatch(/전세|월세/);
     expect(templateAnswer("compare_dong", ctx)).toContain("← 선택");

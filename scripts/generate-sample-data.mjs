@@ -1,5 +1,5 @@
 // 샘플 데이터 생성기: node scripts/generate-sample-data.mjs
-// data/rent_data.csv, data/policy_data.csv, data/gangnam_dong.geojson 을 생성한다.
+// data/rent_data.csv, data/policy_data.csv, data/dong_boundaries.geojson 을 생성한다.
 // 시드 고정이라 여러 번 실행해도 같은 결과가 나온다.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -26,13 +26,18 @@ function pickWeighted(items) {
   return items[items.length - 1];
 }
 
-// 대략적인 사각형 경계 (위도/경도). 실제 행정 경계가 아님.
+const SIGUNGU = "광진구";
+
+// 광진구 법정동 7개. 대략적인 사각형 경계 [남, 서, 북, 동] (위도/경도). 실제 행정 경계가 아님.
+// priceFactor: 강남구 기준 대비 가격 수준(가정값)
 const DONGS = [
-  { name: "역삼동", code: "1168010100", bounds: [37.492, 127.026, 37.504, 127.046], priceFactor: 1.0 },
-  { name: "청담동", code: "1168010400", bounds: [37.517, 127.038, 37.53, 127.058], priceFactor: 1.15 },
-  { name: "삼성동", code: "1168010500", bounds: [37.504, 127.038, 37.517, 127.066], priceFactor: 1.1 },
-  { name: "대치동", code: "1168010600", bounds: [37.49, 127.046, 37.504, 127.068], priceFactor: 1.1 },
-  { name: "논현동", code: "1168010800", bounds: [37.504, 127.018, 37.52, 127.038], priceFactor: 0.95 },
+  { name: "중곡동", code: "1121510100", bounds: [37.56, 127.068, 37.572, 127.095], priceFactor: 0.65 },
+  { name: "능동", code: "1121510200", bounds: [37.548, 127.076, 37.56, 127.095], priceFactor: 0.72 },
+  { name: "구의동", code: "1121510300", bounds: [37.536, 127.076, 37.548, 127.1], priceFactor: 0.75 },
+  { name: "광장동", code: "1121510400", bounds: [37.536, 127.1, 37.556, 127.114], priceFactor: 0.85 },
+  { name: "자양동", code: "1121510500", bounds: [37.524, 127.058, 37.536, 127.1], priceFactor: 0.8 },
+  { name: "화양동", code: "1121510700", bounds: [37.536, 127.062, 37.55, 127.076], priceFactor: 0.72 },
+  { name: "군자동", code: "1121510900", bounds: [37.55, 127.064, 37.56, 127.076], priceFactor: 0.68 },
 ];
 
 // jeonsePerM2: ㎡당 전세가(만원), jeonseRatio: 전세 계약 비율
@@ -79,7 +84,7 @@ for (let i = 0; i < RENT_COUNT; i++) {
   const pad = 0.001;
   rentRows.push({
     id: `R${String(i + 1).padStart(4, "0")}`,
-    sigungu: "강남구",
+    sigungu: SIGUNGU,
     dong: dong.name,
     dong_code: dong.code,
     building_type: type.name,
@@ -134,7 +139,7 @@ const geojson = {
   type: "FeatureCollection",
   features: DONGS.map(({ name, code, bounds: [latMin, lngMin, latMax, lngMax] }) => ({
     type: "Feature",
-    properties: { dong: name, dong_code: code, sigungu: "강남구" },
+    properties: { dong: name, dong_code: code, sigungu: SIGUNGU },
     geometry: {
       type: "Polygon",
       // GeoJSON 좌표 순서는 [경도, 위도], 외곽 링은 반시계 방향
@@ -146,5 +151,5 @@ const geojson = {
 mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(join(OUT_DIR, "rent_data.csv"), toCsv(Object.keys(rentRows[0]), rentRows));
 writeFileSync(join(OUT_DIR, "policy_data.csv"), toCsv(Object.keys(policyRows[0]), policyRows));
-writeFileSync(join(OUT_DIR, "gangnam_dong.geojson"), JSON.stringify(geojson, null, 2) + "\n");
-console.log(`rent_data.csv ${rentRows.length}건, policy_data.csv ${policyRows.length}건, gangnam_dong.geojson ${geojson.features.length}개 동`);
+writeFileSync(join(OUT_DIR, "dong_boundaries.geojson"), JSON.stringify(geojson, null, 2) + "\n");
+console.log(`rent_data.csv ${rentRows.length}건, policy_data.csv ${policyRows.length}건, dong_boundaries.geojson ${geojson.features.length}개 동`);

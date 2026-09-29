@@ -4,6 +4,7 @@ import { policyMonthlySupport, type CostBreakdown } from "./cost";
 import { costByDong, evaluateListing, type DongCost } from "./evaluate";
 import { formatManwon } from "./format";
 import { policyRejectReason, type UserProfile } from "./policy";
+import { DISTRICT } from "./region";
 import type { ContractType, DongMedians, Policy } from "./types";
 
 export const SUGGESTED_QUESTIONS = [
@@ -81,7 +82,7 @@ function summary(ctx: ExplainContext): string {
   const applied = ctx.policies.filter((p) => p.applied).map((p) => p.policy.policy_name);
   const rank = ctx.ranking.findIndex((d) => d.dong === ctx.dong) + 1;
   const lines = [
-    `강남구 ${ctx.dong} ${ctx.contractType}(${listingText(ctx.listing)}) 기준 실질 월 주거비는 ${m(cost.monthly)}, 연 ${formatManwon(cost.annual)}입니다.`,
+    `${DISTRICT} ${ctx.dong} ${ctx.contractType}(${listingText(ctx.listing)}) 기준 실질 월 주거비는 ${m(cost.monthly)}, 연 ${formatManwon(cost.annual)}입니다.`,
     "",
     `• 월세 ${m(cost.rent)} + 보증금 기회비용 ${m(cost.depositCost)}(연 ${(ctx.annualRate * 100).toFixed(1)}%) = 지원 전 ${m(gross)}`,
     cost.policySupport > 0
@@ -89,7 +90,7 @@ function summary(ctx: ExplainContext): string {
       : "• 현재 조건으로 반영되는 정책 지원은 없습니다.",
   ];
   if (rank > 0) {
-    lines.push(`• ${ctx.contractType} 중앙값 매물 기준으로 강남구 ${ctx.ranking.length}개 동 중 ${rank}번째로 저렴한 동입니다.`);
+    lines.push(`• ${ctx.contractType} 중앙값 매물 기준으로 ${DISTRICT} ${ctx.ranking.length}개 동 중 ${rank}번째로 저렴한 동입니다.`);
   }
   return lines.join("\n");
 }
@@ -143,7 +144,7 @@ function compareDong(ctx: ExplainContext): string {
   if (current && current.dong !== cheapest.dong) {
     lines.push("", `${cheapest.dong}으로 옮기면 월 ${m(current.cost.monthly - cheapest.cost.monthly)} 줄어듭니다.`);
   } else if (current) {
-    lines.push("", `${ctx.dong}이 5개 동 중 가장 저렴합니다.`);
+    lines.push("", `${ctx.dong}이 ${ctx.ranking.length}개 동 중 가장 저렴합니다.`);
   }
   return lines.join("\n");
 }
@@ -165,7 +166,7 @@ export function templateAnswer(intent: QuestionId | null, ctx: ExplainContext): 
 export function contextToPrompt(ctx: ExplainContext): string {
   const { profile } = ctx;
   return [
-    `지역: 서울 강남구 ${ctx.dong} / 계약유형: ${ctx.contractType} / 매물: ${listingText(ctx.listing)}`,
+    `지역: 서울 ${DISTRICT} ${ctx.dong} / 계약유형: ${ctx.contractType} / 매물: ${listingText(ctx.listing)}`,
     `사용자: ${profile.age}세, 연 소득 ${formatManwon(profile.annualIncomeManwon)}${profile.isNewlywed ? ", 신혼부부" : ""}`,
     `기회비용 연이율: ${(ctx.annualRate * 100).toFixed(1)}%`,
     "",

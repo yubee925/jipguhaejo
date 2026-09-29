@@ -31,7 +31,7 @@ function boundsOf(geojson: FeatureCollection<Polygon>): LatLngBounds {
   return L.geoJSON(geojson).getBounds();
 }
 
-/** 처음 열 때 강남구(5개 동) 영역에 맞추고, 그보다 크게 축소하거나 멀리 끌지 못하게 제한 */
+/** 처음 열 때 자치구(데이터의 전체 동) 영역에 맞추고, 그보다 크게 축소하거나 멀리 끌지 못하게 제한 */
 function FitToDistrict({ bounds }: { bounds: LatLngBounds }) {
   const map = useMap();
   useEffect(() => {

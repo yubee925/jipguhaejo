@@ -14,7 +14,7 @@ type Props = {
   matched: Policy[];
   listing: { deposit: number; monthly_rent: number };
   annualRate: number;
-  /** 헤더 표시용 (예: "역삼동 · 월세") */
+  /** 헤더 표시용 (예: "광진구 화양동 · 월세") */
   context: string;
 };
 

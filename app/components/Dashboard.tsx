@@ -6,6 +6,7 @@ import { DEFAULT_ANNUAL_RATE } from "@/lib/cost";
 import { costByDong, evaluateListing } from "@/lib/evaluate";
 import type { DongFeatureProps, DongMedians, Policy } from "@/lib/types";
 import { parseConditions, type Conditions } from "@/lib/conditions";
+import { DISTRICT } from "@/lib/region";
 import AgentPanel from "./AgentPanel";
 import ConditionForm from "./ConditionForm";
 import DetailPanel from "./DetailPanel";
@@ -71,7 +72,7 @@ export default function Dashboard({ policies, dongMedians, geojson }: Props) {
           matched={matched}
           listing={listing}
           annualRate={annualRate}
-          context={`강남구 ${conditions.dong} · ${conditions.contractType}`}
+          context={`${DISTRICT} ${conditions.dong} · ${conditions.contractType}`}
         />
       </div>
 

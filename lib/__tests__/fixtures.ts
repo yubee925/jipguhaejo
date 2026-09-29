@@ -23,9 +23,9 @@ export function makePolicy(overrides: Partial<Policy> = {}): Policy {
 export function makeRecord(overrides: Partial<RentRecord> = {}): RentRecord {
   return {
     id: "R0001",
-    sigungu: "강남구",
-    dong: "역삼동",
-    dong_code: "1168010100",
+    sigungu: "광진구",
+    dong: "화양동",
+    dong_code: "1121510700",
     building_type: "오피스텔",
     contract_type: "월세",
     deposit: 1000,
@@ -34,8 +34,8 @@ export function makeRecord(overrides: Partial<RentRecord> = {}): RentRecord {
     floor: 5,
     built_year: 2015,
     contract_date: "2026-01-01",
-    lat: 37.5,
-    lng: 127.03,
+    lat: 37.543,
+    lng: 127.069,
     ...overrides,
   };
 }

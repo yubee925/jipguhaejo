@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Conditions } from "@/lib/conditions";
 import { SUGGESTED_QUESTIONS, type QuestionId } from "@/lib/explain";
+import { DISTRICT } from "@/lib/region";
 
 type Mode = "ai" | "template";
 
@@ -109,7 +110,7 @@ export default function AgentPanel({ conditions }: { conditions: Conditions }) {
       <div className="border-b border-border px-4 py-3">
         <div className="mb-2 text-xs text-muted">
           <span className="font-medium text-foreground">
-            강남구 {conditions.dong} · {conditions.contractType}
+            {DISTRICT} {conditions.dong} · {conditions.contractType}
           </span>{" "}
           계산 결과 기준
         </div>
