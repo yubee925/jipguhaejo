@@ -6,8 +6,9 @@ Next.js 16(App Router) + TypeScript + Tailwind CSS 4. 이 Next.js 버전은 기�
 
 | 경로 | 역할 |
 |---|---|
-| `app/page.tsx` | 서버 컴포넌트. `data/`를 읽어 헤더·대시보드·푸터 렌더 |
-| `app/components/` | 화면(클라이언트 컴포넌트). Dashboard, ConditionForm, MapCard/DongMap, DetailPanel/CostBar, ChatWidget/AgentPanel, AnimatedNumber(숫자 변화 애니메이션), StepBadge(단계 번호), Mascot(캐릭터 "구해봇") |
+| `app/layout.tsx` | `data/`를 한 번 읽어 `AppProvider`(조건·데이터 공유)로 감싸고, 공통 헤더·푸터·AI 도우미를 렌더 |
+| `app/page.tsx`, `app/diagnosis/`, `app/compare/`, `app/policies/`, `app/about/` | 웹사이트 페이지 |
+| `app/components/` | 공통 컴포넌트. AppProvider, SiteHeader/SiteFooter, ConditionForm, MapCard/DongMap(동네 비교 지도), DongFocusMap(진단 페이지의 선택 동 지도), DetailPanel/CostBar, ChatWidget/AgentPanel, AnimatedNumber, Mascot(구해봇) |
 | `app/api/explain/route.ts` | AI 해설 API → [ai-agent.md](ai-agent.md) |
 | `lib/` | 계산 로직(순수 함수). 화면과 API가 함께 쓴다 |
 | `lib/__tests__/` | vitest 단위 테스트 (`npm test`) |
@@ -32,8 +33,8 @@ Next.js 16(App Router) + TypeScript + Tailwind CSS 4. 이 Next.js 버전은 기�
 
 ## 데이터 흐름
 
-1. `page.tsx`(서버)가 정책·동별 중앙값·경계를 계산해 `Dashboard`에 넘긴다.
-2. `Dashboard`가 조건 입력 상태를 들고, 입력이 바뀔 때마다 `lib`로 다시 계산해 지도·상세 패널에 넘긴다.
+1. `layout.tsx`(서버)가 정책·동별 중앙값·경계를 계산해 `AppProvider`에 넘긴다.
+2. `AppProvider`가 조건 입력 상태를 들고, 입력이 바뀔 때마다 `lib`로 다시 계산해 지도·상세 패널에 넘긴다.
 3. 지도에서 동을 고르면 그 동의 중앙값이 입력에 채워진다.
    - 값이 바뀌면 `AnimatedNumber`가 이전 값에서 새 값까지 숫자를 바꾸고, 지도는 폴리곤을 다시 만들지 않고 스타일·라벨만 바꿔 색이 CSS 전환으로 부드럽게 변한다. `prefers-reduced-motion`이면 애니메이션 없이 바로 바뀐다.
 4. AI Agent는 조건만 `/api/explain`에 보내고, 서버가 같은 `lib`로 다시 계산한다.
