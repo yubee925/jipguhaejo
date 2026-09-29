@@ -5,6 +5,11 @@ import PageHeading from "../components/PageHeading";
 
 export const metadata: Metadata = { title: "서비스 소개" };
 
+const TEAM = [
+  { name: "최예나", school: "성균관대학교", major: "글로벌리더학부" },
+  { name: "유병욱", school: "가천대학교", major: "스마트시티학과·도시계획학전공" },
+];
+
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 export default function AboutPage() {
@@ -53,9 +58,18 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-1">
+      <section className="flex flex-col gap-3">
         <h2 className="text-xl font-bold">만든 사람들</h2>
-        <p className="text-sm text-muted">팀 집구해조</p>
+        <p className="text-sm font-semibold">팀 집구해조</p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {TEAM.map((m) => (
+            <li key={m.name} className="rounded-2xl border border-border bg-surface p-4">
+              <div className="font-semibold">{m.name}</div>
+              <div className="mt-1 text-sm text-muted">{m.school}</div>
+              <div className="text-sm text-muted">{m.major}</div>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );
