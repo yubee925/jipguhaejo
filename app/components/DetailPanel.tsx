@@ -7,7 +7,6 @@ import { formatManwon } from "@/lib/format";
 import type { Policy } from "@/lib/types";
 import AnimatedNumber from "./AnimatedNumber";
 import CostBar from "./CostBar";
-import StepBadge from "./StepBadge";
 
 type Period = "월" | "연";
 
@@ -33,10 +32,7 @@ export default function DetailPanel({ cost, matched, listing, annualRate, contex
     <section className="flex flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
-            <StepBadge step={3} />
-            선택한 동의 실질 주거비
-          </h2>
+          <h2 className="text-sm font-semibold tracking-tight">실질 주거비 진단 결과</h2>
           <span className="text-xs text-muted">{context}</span>
         </div>
         <div className="flex rounded-lg bg-background p-0.5 text-xs" role="group" aria-label="기간">

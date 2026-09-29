@@ -8,7 +8,6 @@ import { DISTRICT } from "@/lib/region";
 import { ORDERED, rankClasses } from "@/lib/scale";
 import type { ContractType, DongFeatureProps } from "@/lib/types";
 import AnimatedNumber from "./AnimatedNumber";
-import StepBadge from "./StepBadge";
 
 // Leaflet은 window가 필요해 SSR 제외
 const DongMap = dynamic(() => import("./DongMap"), {
@@ -39,14 +38,11 @@ export default function MapCard({ geojson, dongCosts, contractType, selected, on
   return (
     <section className="flex flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
-          <StepBadge step={2} />
-          동네별 실질 월 주거비
-        </h2>
+        <h2 className="text-sm font-semibold tracking-tight">동네별 실질 월 주거비</h2>
         <span className="text-xs text-muted">{contractType} 중앙값 · 동을 눌러 자세히 보기</span>
       </header>
 
-      <div className="grid gap-4 p-4 2xl:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="flex min-w-0 flex-col gap-3">
           <div className="relative z-0 h-[360px] lg:h-[420px]">
             <DongMap geojson={geojson} fills={fills} values={values} selected={selected} onSelect={onSelect} />

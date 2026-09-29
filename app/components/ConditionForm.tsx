@@ -73,7 +73,7 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
   };
 
   return (
-    <Card step={1} title="내 조건 입력" subtitle="바꾸면 지도와 금액이 바로 바뀌어요" className="flex-1">
+    <Card title="내 조건 입력" subtitle="바꾸면 결과가 바로 바뀌어요" className="flex-1">
       <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">내 정보</legend>
