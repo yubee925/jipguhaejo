@@ -18,6 +18,10 @@
 - [ ] 정책 지원 기간(`support_period_months`)을 연 주거비에 반영할지
 - [ ] 운영 사이트에 `ANTHROPIC_API_KEY`를 넣어 Claude 해설을 켤지(비용·사용 한도)
 
+## 데이터 관리
+
+- [ ] 데이터를 주기적으로 갱신하는 방법(강사 피드백 "데이터베이스를 주기적으로 관리"). 실제 실거래가 데이터를 넣을 때(2026-10-01 예정) 갱신 주기와 방식(수동 스크립트 / GitHub Actions 정기 실행 / DB 도입)을 정한다.
+
 ## 데이터 확인
 
 - [ ] 광진구 법정동 코드 10자리 검증 → [data/gwangjin-dongs.md](data/gwangjin-dongs.md)

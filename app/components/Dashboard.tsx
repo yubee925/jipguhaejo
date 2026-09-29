@@ -7,10 +7,13 @@ import { costByDong, evaluateListing } from "@/lib/evaluate";
 import type { DongFeatureProps, DongMedians, Policy } from "@/lib/types";
 import { parseConditions, type Conditions } from "@/lib/conditions";
 import { DISTRICT } from "@/lib/region";
-import AgentPanel from "./AgentPanel";
+import ChatWidget from "./ChatWidget";
 import ConditionForm from "./ConditionForm";
 import DetailPanel from "./DetailPanel";
 import MapCard from "./MapCard";
+import StepBadge from "./StepBadge";
+
+const GUIDE_STEPS = ["내 조건을 입력하세요", "지도에서 동네별 실질 주거비를 비교하세요", "동을 눌러 자세히 보세요"];
 
 type Props = {
   policies: Policy[];
@@ -52,34 +55,48 @@ export default function Dashboard({ policies, dongMedians, geojson }: Props) {
   }, [conditions, policies, dongMedians]);
 
   return (
-    <main className="grid flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_360px] lg:overflow-hidden">
-      {/* 좌: 지도 + 조건 입력 */}
-      <aside className="flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto">
-        <MapCard
-          geojson={geojson}
-          dongCosts={dongCosts}
-          contractType={conditions.contractType}
-          selected={conditions.dong}
-          onSelect={selectDong}
-        />
-        <ConditionForm value={conditions} onChange={setConditions} dongMedians={dongMedians} onDongChange={selectDong} />
-      </aside>
+    <main className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 lg:min-h-0 lg:overflow-hidden">
+      {/* 사용 순서 안내 */}
+      <ol className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-accent/20 bg-accent-soft px-4 py-2.5 text-sm">
+        {GUIDE_STEPS.map((text, i) => (
+          <li key={text} className="flex items-center gap-2">
+            {i > 0 && (
+              <span aria-hidden className="text-accent/50">
+                →
+              </span>
+            )}
+            <StepBadge step={i + 1} />
+            <span className={i === 0 ? "font-semibold" : ""}>{text}</span>
+          </li>
+        ))}
+      </ol>
 
-      {/* 중앙: 상세 패널 */}
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto">
-        <DetailPanel
-          cost={cost}
-          matched={matched}
-          listing={listing}
-          annualRate={annualRate}
-          context={`${DISTRICT} ${conditions.dong} · ${conditions.contractType}`}
-        />
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[340px_minmax(0,1fr)]">
+        {/* 좌: 내 조건 */}
+        <aside className="flex flex-col gap-4 lg:min-h-0 lg:overflow-y-auto">
+          <ConditionForm value={conditions} onChange={setConditions} dongMedians={dongMedians} onDongChange={selectDong} />
+        </aside>
+
+        {/* 우: 지도 → 선택한 동 상세 (채팅 버튼에 가리지 않게 아래 여백) */}
+        <div className="flex flex-col gap-4 pb-24 lg:min-h-0 lg:overflow-y-auto">
+          <MapCard
+            geojson={geojson}
+            dongCosts={dongCosts}
+            contractType={conditions.contractType}
+            selected={conditions.dong}
+            onSelect={selectDong}
+          />
+          <DetailPanel
+            cost={cost}
+            matched={matched}
+            listing={listing}
+            annualRate={annualRate}
+            context={`${DISTRICT} ${conditions.dong} · ${conditions.contractType}`}
+          />
+        </div>
       </div>
 
-      {/* 우: AI Agent */}
-      <aside className="flex flex-col gap-4 lg:min-h-0">
-        <AgentPanel conditions={conditions} />
-      </aside>
+      <ChatWidget conditions={conditions} />
     </main>
   );
 }

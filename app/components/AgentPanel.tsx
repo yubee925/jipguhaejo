@@ -13,7 +13,13 @@ type Message =
 
 const MODE_LABEL: Record<Mode, string> = { ai: "Claude 해설", template: "제한형 응답" };
 
-export default function AgentPanel({ conditions }: { conditions: Conditions }) {
+type Props = {
+  conditions: Conditions;
+  /** 채팅 창 닫기(떠 있는 창에서 쓸 때) */
+  onClose?: () => void;
+};
+
+export default function AgentPanel({ conditions, onClose }: Props) {
   const [serverMode, setServerMode] = useState<Mode | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -92,19 +98,36 @@ export default function AgentPanel({ conditions }: { conditions: Conditions }) {
   }
 
   return (
-    <section className="flex min-h-[480px] flex-1 flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:min-h-0">
+    <section className="flex h-full min-h-0 flex-col bg-surface">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold tracking-tight">AI Agent</h2>
-        {serverMode && (
-          <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-              serverMode === "ai" ? "bg-accent-soft text-accent" : "bg-background text-muted"
-            }`}
-            title={serverMode === "template" ? "API 키가 없어 계산 결과로 만든 정해진 답변만 제공합니다" : undefined}
-          >
-            {serverMode === "ai" ? "● Claude 연결됨" : "제한형 응답 모드"}
-          </span>
-        )}
+        <div className="flex flex-col">
+          <h2 className="text-sm font-semibold tracking-tight">AI 주거비 도우미</h2>
+          <span className="text-[11px] text-muted">무엇이든 물어보세요</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {serverMode && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                serverMode === "ai" ? "bg-accent-soft text-accent" : "bg-background text-muted"
+              }`}
+              title={serverMode === "template" ? "API 키가 없어 계산 결과로 만든 정해진 답변만 제공합니다" : undefined}
+            >
+              {serverMode === "ai" ? "● Claude 연결됨" : "제한형 응답 모드"}
+            </span>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="채팅 닫기"
+              className="grid h-7 w-7 place-items-center rounded-md text-muted transition hover:bg-background hover:text-foreground"
+            >
+              <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <path d="M5 5l10 10M15 5L5 15" />
+              </svg>
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="border-b border-border px-4 py-3">
@@ -132,7 +155,7 @@ export default function AgentPanel({ conditions }: { conditions: Conditions }) {
       <div ref={listRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3" aria-live="polite">
         {messages.length === 0 && (
           <p className="m-auto max-w-[220px] text-center text-xs leading-relaxed text-muted">
-            추천 질문을 누르거나 직접 물어보세요. 선택한 동의 계산 결과로 답합니다.
+            추천 질문을 누르거나 직접 물어보세요. 지금 선택한 동의 계산 결과로 답합니다.
           </p>
         )}
         {messages.map((m) =>

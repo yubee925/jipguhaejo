@@ -52,7 +52,7 @@ export default function CostBar({ rent, depositCost, support, format }: Props) {
             <div
               key={s.key}
               onMouseEnter={() => setHover(s.key)}
-              className={`h-full transition-opacity ${i === 0 ? "rounded-l" : ""} ${i === segments.length - 1 ? "rounded-r" : ""} ${
+              className={`h-full transition-[width,opacity] duration-500 ease-out motion-reduce:transition-none ${i === 0 ? "rounded-l" : ""} ${i === segments.length - 1 ? "rounded-r" : ""} ${
                 hover && hover !== s.key ? "opacity-60" : ""
               }`}
               style={{ width: pct(s.value), background: s.color }}
@@ -62,7 +62,7 @@ export default function CostBar({ rent, depositCost, support, format }: Props) {
         {support > 0 && (
           <div
             onMouseEnter={() => setHover("support")}
-            className="absolute inset-y-0 right-0 rounded-r border-l-2 border-dashed border-foreground/60"
+            className="absolute inset-y-0 right-0 rounded-r border-l-2 border-dashed border-foreground/60 transition-[width] duration-500 ease-out motion-reduce:transition-none"
             style={{ width: pct(support), background: HATCH }}
           />
         )}

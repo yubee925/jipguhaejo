@@ -5,7 +5,9 @@ import type { CostBreakdown } from "@/lib/cost";
 import { policyMonthlySupport } from "@/lib/cost";
 import { formatManwon } from "@/lib/format";
 import type { Policy } from "@/lib/types";
+import AnimatedNumber from "./AnimatedNumber";
 import CostBar from "./CostBar";
+import StepBadge from "./StepBadge";
 
 type Period = "월" | "연";
 
@@ -30,8 +32,11 @@ export default function DetailPanel({ cost, matched, listing, annualRate, contex
   return (
     <section className="flex flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold tracking-tight">실질 주거비</h2>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+            <StepBadge step={3} />
+            선택한 동의 실질 주거비
+          </h2>
           <span className="text-xs text-muted">{context}</span>
         </div>
         <div className="flex rounded-lg bg-background p-0.5 text-xs" role="group" aria-label="기간">
@@ -54,19 +59,19 @@ export default function DetailPanel({ cost, matched, listing, annualRate, contex
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="rounded-lg bg-background px-4 py-3">
             <div className="text-xs text-muted">지원 전 {period} 주거비</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums text-muted line-through decoration-1">{format(before)}</div>
+            <AnimatedNumber value={before} format={format} className="mt-1 block text-xl font-semibold text-muted line-through decoration-1" />
           </div>
           <span className="text-muted" aria-hidden>
             →
           </span>
           <div className="rounded-lg bg-accent-soft px-4 py-3">
             <div className="text-xs text-accent">지원 후 {period} 주거비</div>
-            <div className="mt-1 text-2xl font-bold tabular-nums">{format(cost.monthly)}</div>
+            <AnimatedNumber value={cost.monthly} format={format} className="mt-1 block text-2xl font-bold" />
           </div>
         </div>
         {cost.policySupport > 0 ? (
           <p className="-mt-3 text-xs text-positive">
-            정책 지원으로 {period} <span className="font-semibold tabular-nums">{format(cost.policySupport)}</span> 절감 ({savingPct}%)
+            정책 지원으로 {period} <AnimatedNumber value={cost.policySupport} format={format} className="font-semibold" /> 절감 ({savingPct}%)
           </p>
         ) : (
           <p className="-mt-3 text-xs text-muted">적용 가능한 정책 지원이 없습니다.</p>
@@ -116,7 +121,7 @@ export default function DetailPanel({ cost, matched, listing, annualRate, contex
                     <p className="text-xs leading-relaxed">{p.description}</p>
                     <div className="mt-auto flex items-baseline justify-between border-t border-border pt-2 text-xs">
                       <span className="text-muted">이 매물 기준 {period} 지원</span>
-                      <span className="font-semibold tabular-nums">{format(amount)}</span>
+                      <AnimatedNumber value={amount} format={format} className="font-semibold" />
                     </div>
                   </li>
                 );

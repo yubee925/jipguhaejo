@@ -73,7 +73,7 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
   };
 
   return (
-    <Card title="조건 입력" subtitle="금액 단위: 만원" className="flex-1">
+    <Card step={1} title="내 조건 입력" subtitle="바꾸면 지도와 금액이 바로 바뀌어요" className="flex-1">
       <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">내 정보</legend>
@@ -92,7 +92,7 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
-          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">매물 조건</legend>
+          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">찾는 집 (금액 단위: 만원)</legend>
           <Field label={`지역 (${DISTRICT})`}>
             <select className={inputClass} value={value.dong} onChange={(e) => onDongChange(e.target.value)}>
               {Object.keys(dongMedians).map((d) => (

@@ -1,6 +1,10 @@
 # AI Agent
 
-화면 우측 패널(`app/components/AgentPanel.tsx`)과 API(`app/api/explain/route.ts`). 해설 문맥과 템플릿은 `lib/explain.ts`.
+화면 오른쪽 아래 떠 있는 "AI에게 물어보기" 버튼(`app/components/ChatWidget.tsx`)을 누르면 열리는 채팅 창(`AgentPanel.tsx`)과 API(`app/api/explain/route.ts`). 해설 문맥과 템플릿은 `lib/explain.ts`.
+
+- 버튼에는 집구해조 캐릭터 "구해봇"(`Mascot.tsx`, 구름 머리·화면 얼굴·가슴의 집 표시)이 있다. 창이 닫혀 있으면 눈을 감고, 열리면 눈을 뜬다. 참고 이미지의 느낌만 빌린 자체 디자인이다.
+- 창을 닫아도 대화는 유지된다(닫힌 동안은 `inert`로 숨김). Esc로 닫힌다.
+- 2026-09-30 이전에는 화면 우측 칸에 고정 패널로 있었다. 강사 피드백("에이전트 기능 감추거나 상단에")으로 떠 있는 채팅 버튼으로 옮겼다.
 
 ## 동작
 

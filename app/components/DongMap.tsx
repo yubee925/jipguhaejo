@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import type { FeatureCollection, Polygon } from "geojson";
 import L, { type LatLngBounds, type Path, type PathOptions } from "leaflet";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
 import { formatManwon } from "@/lib/format";
 import type { DongFeatureProps } from "@/lib/types";
@@ -24,12 +24,19 @@ const PAN_MARGIN = 0.2;
 /** 처음 맞춘 줌보다 이만큼까지만 축소 허용 */
 const ZOOM_OUT_LIMIT = 0.5;
 const MAX_ZOOM = 17;
+/** 라벨 금액이 바뀔 때 숫자가 변하는 시간(ms) */
+const LABEL_TWEEN_MS = 500;
 
 const STROKE = { base: "#ffffff", hover: "#374151", selected: "#111827" };
 
 function boundsOf(geojson: FeatureCollection<Polygon>): LatLngBounds {
   return L.geoJSON(geojson).getBounds();
 }
+
+const labelHtml = (dong: string, value: number | undefined) =>
+  `<strong>${dong}</strong><br/><span>${value === undefined ? "-" : formatManwon(value, 1)}</span>`;
+
+const dongOf = (layer: L.Layer) => ((layer as L.Polygon).feature?.properties as DongFeatureProps).dong;
 
 /** 처음 열 때 자치구(데이터의 전체 동) 영역에 맞추고, 그보다 크게 축소하거나 멀리 끌지 못하게 제한 */
 function FitToDistrict({ bounds }: { bounds: LatLngBounds }) {
@@ -45,14 +52,74 @@ function FitToDistrict({ bounds }: { bounds: LatLngBounds }) {
 
 export default function DongMap({ geojson, fills, values, selected, onSelect }: Props) {
   const bounds = useMemo(() => boundsOf(geojson), [geojson]);
+  const layerRef = useRef<L.GeoJSON | null>(null);
+  /** 라벨에 지금 표시 중인 값(애니메이션 시작점) */
+  const shownRef = useRef<Record<string, number>>({});
 
-  const styleFor = (dong: string, hover = false): PathOptions => ({
-    fillColor: fills[dong] ?? "#e5e7eb",
-    fillOpacity: 0.55,
-    color: dong === selected ? STROKE.selected : hover ? STROKE.hover : STROKE.base,
-    weight: dong === selected ? 2 : hover ? 2 : 1,
-    opacity: 1,
-  });
+  // 이벤트 핸들러가 항상 최신 값을 보도록 (다른 효과보다 먼저 실행되게 위에 둠)
+  const latest = useRef({ fills, selected, onSelect });
+  useEffect(() => {
+    latest.current = { fills, selected, onSelect };
+  }, [fills, selected, onSelect]);
+
+  const styleFor = (dong: string, hover = false): PathOptions => {
+    const { fills, selected } = latest.current;
+    const isSelected = dong === selected;
+    return {
+      fillColor: fills[dong] ?? "#e5e7eb",
+      fillOpacity: 0.55,
+      color: isSelected ? STROKE.selected : hover ? STROKE.hover : STROKE.base,
+      weight: isSelected || hover ? 2 : 1,
+      opacity: 1,
+    };
+  };
+
+  // 색·선택 갱신: 폴리곤을 다시 만들지 않고 스타일만 바꿔 CSS 전환 효과가 보이게
+  useEffect(() => {
+    const group = layerRef.current;
+    if (!group) return;
+    group.eachLayer((layer) => {
+      const dong = dongOf(layer);
+      (layer as Path).setStyle(styleFor(dong));
+      if (dong === selected) (layer as Path).bringToFront();
+    });
+    // styleFor는 latest ref만 읽는다
+  }, [fills, selected]);
+
+  // 라벨 금액 갱신: 이전 값에서 새 값까지 숫자가 변하고, 바뀐 라벨은 잠깐 강조
+  useEffect(() => {
+    const group = layerRef.current;
+    if (!group) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const layers: { layer: L.Layer; dong: string; from: number; to: number }[] = [];
+    group.eachLayer((layer) => {
+      const dong = dongOf(layer);
+      const to = values[dong];
+      const from = shownRef.current[dong] ?? to;
+      layers.push({ layer, dong, from, to });
+      if (from !== to && to !== undefined) {
+        const el = layer.getTooltip()?.getElement();
+        el?.classList.remove("dong-label-flash");
+        void el?.offsetWidth; // 애니메이션 재시작
+        el?.classList.add("dong-label-flash");
+      }
+    });
+
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const k = reduce ? 1 : Math.min(1, (now - start) / LABEL_TWEEN_MS);
+      const e = 1 - Math.pow(1 - k, 3);
+      for (const { layer, dong, from, to } of layers) {
+        const v = to === undefined ? undefined : k === 1 ? to : from + (to - from) * e;
+        if (v !== undefined) shownRef.current[dong] = v;
+        layer.setTooltipContent(labelHtml(dong, v));
+      }
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [values]);
 
   return (
     <MapContainer
@@ -71,27 +138,20 @@ export default function DongMap({ geojson, fills, values, selected, onSelect }: 
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         className="dong-map-tiles"
       />
-      {/* 값·선택이 바뀌면 다시 그려 툴팁과 스타일을 갱신 */}
       <GeoJSON
-        key={`${selected}|${JSON.stringify(values)}`}
+        ref={layerRef}
         data={geojson}
         style={(f) => styleFor(f?.properties.dong)}
-        eventHandlers={{
-          // 선택된 동의 테두리가 이웃 폴리곤에 가리지 않게 맨 위로
-          add: (e) =>
-            (e.target as L.GeoJSON).eachLayer((l) => {
-              if ((l as L.Polygon).feature?.properties.dong === selected) (l as Path).bringToFront();
-            }),
-        }}
         onEachFeature={(feature, layer) => {
           const { dong } = feature.properties as DongFeatureProps;
-          const value = values[dong];
-          layer.bindTooltip(
-            `<strong>${dong}</strong><br/><span>${value === undefined ? "-" : formatManwon(value, 1)}</span>`,
-            { permanent: true, direction: "center", className: "dong-label" },
-          );
+          shownRef.current[dong] = values[dong];
+          layer.bindTooltip(labelHtml(dong, values[dong]), {
+            permanent: true,
+            direction: "center",
+            className: "dong-label",
+          });
           layer.on({
-            click: () => onSelect(dong),
+            click: () => latest.current.onSelect(dong),
             mouseover: (e) => {
               const path = e.target as Path;
               path.setStyle(styleFor(dong, true));
@@ -100,7 +160,7 @@ export default function DongMap({ geojson, fills, values, selected, onSelect }: 
             mouseout: (e) => {
               const path = e.target as Path;
               path.setStyle(styleFor(dong));
-              if (dong !== selected) path.bringToBack();
+              if (dong !== latest.current.selected) path.bringToBack();
             },
           });
         }}
