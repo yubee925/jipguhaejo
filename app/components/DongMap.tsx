@@ -29,7 +29,7 @@ const LABEL_TWEEN_MS = 500;
 
 const STROKE = { base: "#ffffff", hover: "#374151", selected: "#111827" };
 
-function boundsOf(geojson: FeatureCollection<Polygon>): LatLngBounds {
+export function boundsOf(geojson: FeatureCollection<Polygon>): LatLngBounds {
   return L.geoJSON(geojson).getBounds();
 }
 
@@ -40,7 +40,7 @@ const labelHtml = (dong: string, value: number | undefined) =>
  * 자치구 바깥을 가리는 마스크: 넓은 사각형에서 각 동 경계를 구멍으로 뚫는다.
  * 경계 파일만 바꾸면 모양이 따라온다.
  */
-function outsideMask(geojson: FeatureCollection<Polygon>, bounds: LatLngBounds): L.LatLngExpression[][] {
+export function outsideMask(geojson: FeatureCollection<Polygon>, bounds: LatLngBounds): L.LatLngExpression[][] {
   const outer = bounds.pad(3);
   const sw = outer.getSouthWest();
   const ne = outer.getNorthEast();
