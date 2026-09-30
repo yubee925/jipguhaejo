@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Conditions } from "@/lib/conditions";
 import { SUGGESTED_QUESTIONS, type QuestionId } from "@/lib/explain";
 import { DISTRICT } from "@/lib/region";
+import { HOUSING_TYPE_LABEL } from "@/lib/conditions";
 
 type Mode = "ai" | "template";
 
@@ -52,7 +53,7 @@ export default function AgentPanel({ conditions, onClose }: Props) {
 
     const userId = nextId.current++;
     const agentId = nextId.current++;
-    const context = `${conditions.dong} · ${conditions.contractType}`;
+    const context = `${conditions.dong} · ${HOUSING_TYPE_LABEL[conditions.housingType]}`;
     setMessages((ms) => [
       ...ms,
       { id: userId, role: "user", text: q },
@@ -133,7 +134,7 @@ export default function AgentPanel({ conditions, onClose }: Props) {
       <div className="border-b border-border px-4 py-3">
         <div className="mb-2 text-xs text-muted">
           <span className="font-medium text-foreground">
-            {DISTRICT} {conditions.dong} · {conditions.contractType}
+            {DISTRICT} {conditions.dong} · {HOUSING_TYPE_LABEL[conditions.housingType]}
           </span>{" "}
           계산 결과 기준
         </div>

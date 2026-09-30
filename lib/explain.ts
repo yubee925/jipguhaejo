@@ -1,151 +1,134 @@
-// AI Agent 패널용: 선택 동의 계산 결과를 해설 문맥으로 묶고, 제한형(템플릿) 답변을 만든다.
-import type { ParsedConditions } from "./conditions";
-import { policyMonthlySupport, type CostBreakdown } from "./cost";
-import { costByDong, evaluateListing, type DongCost } from "./evaluate";
+// AI 도우미용: diagnoseDong·compareDongs 결과를 해설 문맥으로 묶고, 제한형(템플릿) 답변을 만든다.
+// AI는 숫자를 계산하지 않는다. 여기서 만든 수치만 넘긴다.
+import { HOUSING_TYPE_LABEL } from "./conditions";
+import { compareDongs, diagnoseDong } from "./diagnose";
 import { formatManwon } from "./format";
-import { policyRejectReason, type UserProfile } from "./policy";
 import { DISTRICT } from "./region";
-import type { ContractType, DongMedians, Policy } from "./types";
+import type { Constants, HousingType, MatchResult, Policy, RentRecord, UserInput } from "./types";
 
 export const SUGGESTED_QUESTIONS = [
   { id: "summary", label: "이 동의 실질 주거비를 요약해줘" },
-  { id: "policy", label: "정책 지원은 어떻게 계산됐어?" },
-  { id: "compare_type", label: "전세와 월세 중 뭐가 유리해?" },
+  { id: "policy", label: "받을 수 있는 정책은 뭐야?" },
+  { id: "compare_type", label: "오피스텔과 연립·다세대 중 뭐가 나아?" },
   { id: "compare_dong", label: "다른 동과 비교하면 어때?" },
 ] as const;
 
 export type QuestionId = (typeof SUGGESTED_QUESTIONS)[number]["id"];
 
+type Diagnosis = ReturnType<typeof diagnoseDong>;
+type Available = Extract<Diagnosis, { available: true }>;
+type Ranked = ReturnType<typeof compareDongs>["ranked"];
+
 export type ExplainContext = {
+  u: UserInput;
   dong: string;
-  contractType: ContractType;
-  profile: UserProfile;
-  listing: { deposit: number; monthly_rent: number };
-  annualRate: number;
-  cost: CostBreakdown;
-  policies: { policy: Policy; matched: boolean; applied: boolean; monthlySupport: number; reason: string | null }[];
-  /** 이 동의 전세·월세 중앙값 매물 비교 */
-  byType: Partial<Record<ContractType, DongCost>>;
-  /** 같은 계약유형 중앙값 기준 동 순위(저렴한 순) */
-  ranking: DongCost[];
+  k: Constants;
+  diagnosis: Diagnosis;
+  /** 같은 동의 주택유형별 진단 */
+  byType: Record<HousingType, Diagnosis>;
+  /** 같은 유형 기준 동 순위 */
+  ranking: Ranked;
 };
 
 export function buildExplainContext(
-  input: ParsedConditions,
-  data: { policies: Policy[]; dongMedians: DongMedians },
+  u: UserInput,
+  dong: string,
+  data: { rent: RentRecord[]; policies: Policy[]; k: Constants; dongs: string[] },
 ): ExplainContext {
-  const { dong, contractType, profile, listing, annualRate } = input;
-  const { cost } = evaluateListing(listing, profile, data.policies, annualRate);
-  const appliedIds = new Set(cost.applied.map((p) => p.policy_id));
-
-  const policies = data.policies.map((policy) => {
-    const reason = policyRejectReason(profile, policy, listing);
-    return {
-      policy,
-      matched: reason === null,
-      applied: appliedIds.has(policy.policy_id),
-      monthlySupport: reason === null ? policyMonthlySupport(listing, policy, annualRate) : 0,
-      reason,
-    };
-  });
-
-  const byType: ExplainContext["byType"] = {};
-  for (const type of ["전세", "월세"] as const) {
-    const found = costByDong(data.dongMedians, type, profile, data.policies, annualRate).find((d) => d.dong === dong);
-    if (found) byType[type] = found;
-  }
-
-  const ranking = costByDong(data.dongMedians, contractType, profile, data.policies, annualRate).sort(
-    (a, b) => a.cost.monthly - b.cost.monthly,
-  );
-
-  return { dong, contractType, profile, listing, annualRate, cost, policies, byType, ranking };
+  const { rent, policies, k, dongs } = data;
+  const byType = {
+    officetel: diagnoseDong({ ...u, housingType: "officetel" }, dong, rent, policies, k),
+    villa: diagnoseDong({ ...u, housingType: "villa" }, dong, rent, policies, k),
+  };
+  return { u, dong, k, diagnosis: byType[u.housingType], byType, ranking: compareDongs(u, dongs, rent, policies, k).ranked };
 }
 
 const m = (v: number) => formatManwon(v, 1);
-const listingText = (l: { deposit: number; monthly_rent: number }) =>
-  l.monthly_rent > 0 ? `보증금 ${formatManwon(l.deposit)} / 월세 ${formatManwon(l.monthly_rent)}` : `전세 ${formatManwon(l.deposit)}`;
+const typeLabel = (t: HousingType) => HOUSING_TYPE_LABEL[t];
 
 /** 자유 질문을 추천 질문 유형으로 분류. 해당 없으면 null. */
 export function detectIntent(question: string): QuestionId | null {
   const q = question.replace(/\s+/g, "");
-  if (/전세.*월세|월세.*전세|유리|어느쪽|계약유형/.test(q)) return "compare_type";
+  if (/오피스텔|빌라|연립|다세대|주택유형|유형/.test(q)) return "compare_type";
   if (/다른동|비교|순위|제일싼|가장싼|저렴한동/.test(q)) return "compare_dong";
-  if (/정책|지원|혜택|대출|이자/.test(q)) return "policy";
+  if (/정책|지원|혜택|대출|이자|자격/.test(q)) return "policy";
   if (/요약|얼마|주거비|비용|정리/.test(q)) return "summary";
   return null;
 }
 
+const sampleLine = (d: Available) =>
+  d.base.lowSample ? `거래 ${d.base.count}건뿐이라 표본이 부족합니다` : `신규 월세 거래 ${d.base.count}건 기준`;
+
+const byBucket = (d: Available, b: MatchResult["bucket"]) => d.matches.filter((x) => x.bucket === b);
+const nameOf = (d: Available, id: string) => d.matches.find((x) => x.policy.policy_id === id)?.policy.name ?? id;
+
 function summary(ctx: ExplainContext): string {
-  const { cost } = ctx;
-  const gross = cost.rent + cost.depositCost;
-  const applied = ctx.policies.filter((p) => p.applied).map((p) => p.policy.policy_name);
-  const rank = ctx.ranking.findIndex((d) => d.dong === ctx.dong) + 1;
+  const d = ctx.diagnosis;
+  const place = `${DISTRICT} ${ctx.dong} ${typeLabel(ctx.u.housingType)}`;
+  if (!d.available) return `${place} 월세 거래가 없어 계산할 수 없습니다.`;
+  const rank = ctx.ranking.find((x) => x.dong === ctx.dong)?.rank;
+  const r = ctx.k.CONVERSION_RATE;
   const lines = [
-    `${DISTRICT} ${ctx.dong} ${ctx.contractType}(${listingText(ctx.listing)}) 기준 실질 월 주거비는 ${m(cost.monthly)}, 연 ${formatManwon(cost.annual)}입니다.`,
+    `${place}의 실질 월 주거비는 ${m(d.real)}입니다(${sampleLine(d)}).`,
     "",
-    `• 월세 ${m(cost.rent)} + 보증금 기회비용 ${m(cost.depositCost)}(연 ${(ctx.annualRate * 100).toFixed(1)}%) = 지원 전 ${m(gross)}`,
-    cost.policySupport > 0
-      ? `• 정책 지원 −${m(cost.policySupport)} (${applied.join(", ")})`
-      : "• 현재 조건으로 반영되는 정책 지원은 없습니다.",
+    `• 동 기준 주거비 ${m(d.base.C!)} = 대표 매물 월세 ${m(d.listing.rent)} + 보증금 ${formatManwon(d.listing.deposit)} 환산분(연 ${r}%)`,
+    d.S > 0
+      ? `• 정책 지원 −${m(d.S)} (${d.supports.map((s) => nameOf(d, s.policyId)).join(", ")}), 절감률 ${Math.round(d.savingRate)}%`
+      : "• 지금 바로 반영되는 월세 지원은 없습니다.",
+    `• 3년 누적 ${formatManwon(d.yearly.total)} (지원 없으면 ${formatManwon(d.yearly.withoutSupport)})`,
   ];
-  if (rank > 0) {
-    lines.push(`• ${ctx.contractType} 중앙값 매물 기준으로 ${DISTRICT} ${ctx.ranking.length}개 동 중 ${rank}번째로 저렴한 동입니다.`);
-  }
+  if (rank) lines.push(`• ${typeLabel(ctx.u.housingType)} 기준 ${DISTRICT} ${ctx.ranking.length}개 동 중 ${rank}번째로 저렴합니다.`);
+  lines.push("", "관리비는 별도이며, 예상 금액이고 최종 자격은 공고 기준입니다.");
   return lines.join("\n");
 }
 
 function policy(ctx: ExplainContext): string {
-  const matched = ctx.policies.filter((p) => p.matched);
-  const rejected = ctx.policies.filter((p) => !p.matched);
+  const d = ctx.diagnosis;
+  if (!d.available) return summary(ctx);
   const lines: string[] = [];
-  if (matched.length === 0) {
-    lines.push("현재 조건으로 해당되는 정책이 없습니다.");
-  } else {
-    lines.push(`해당 정책 ${matched.length}건 중 유형별로 지원액이 가장 큰 1건씩 반영했습니다. 반영 합계는 월 ${m(ctx.cost.policySupport)}입니다.`, "");
-    for (const p of matched) {
-      const how =
-        p.policy.support_type === "월세지원"
-          ? `월 ${formatManwon(p.policy.support_amount_manwon)} 한도 내 월세 지원`
-          : `보증금 중 최대 ${formatManwon(p.policy.support_amount_manwon)}에 대해 금리 차이만큼 절감`;
-      lines.push(`• ${p.policy.policy_name}: 월 ${m(p.monthlySupport)} (${how})${p.applied ? " — 반영" : " — 같은 유형 중복이라 제외"}`);
-    }
-  }
-  if (rejected.length > 0) {
+  const confirmed = byBucket(d, "confirmed");
+  lines.push(confirmed.length ? "지원 확정:" : "지금 바로 반영되는 월세 지원은 없습니다.");
+  for (const x of confirmed) lines.push(`• ${x.policy.name}: 월 ${m(x.policy.benefit_monthly ?? 0)}${x.policy.benefit_months ? `, ${x.policy.benefit_months}개월` : ""}`);
+  const lottery = byBucket(d, "lottery");
+  if (lottery.length) lines.push("", `선정 시(추첨): ${lottery.map((x) => x.policy.name).join(", ")} → 실질 월 ${m(d.scenarios.lottery)}`);
+  const next = byBucket(d, "next_year");
+  if (next.length) lines.push("", `내년 신청 시: ${next.map((x) => x.policy.name).join(", ")} → 실질 월 ${m(d.scenarios.nextYear)}`);
+  const card = byBucket(d, "card");
+  if (card.length) lines.push("", `안내(월 계산 제외): ${card.map((x) => x.policy.name).join(", ")}`);
+  const no = byBucket(d, "ineligible");
+  if (no.length) {
     lines.push("", "해당되지 않은 정책:");
-    for (const p of rejected) lines.push(`• ${p.policy.policy_name}: ${p.reason}`);
+    for (const x of no) lines.push(`• ${x.policy.name}: ${x.reasons.join(", ")}`);
   }
+  const warnings = [...new Set(d.matches.filter((x) => x.eligible).flatMap((x) => x.warnings))];
+  if (warnings.length) lines.push("", `확인 필요: ${warnings.join(", ")}`);
   return lines.join("\n");
 }
 
 function compareType(ctx: ExplainContext): string {
-  const j = ctx.byType["전세"];
-  const w = ctx.byType["월세"];
-  if (!j || !w) return `${ctx.dong}에는 전세·월세 중 한쪽 샘플이 없어 비교할 수 없습니다.`;
-  const cheaper = j.cost.monthly <= w.cost.monthly ? j : w;
-  const cheaperType = cheaper === j ? "전세" : "월세";
-  const diff = Math.abs(j.cost.monthly - w.cost.monthly);
+  const o = ctx.byType.officetel;
+  const v = ctx.byType.villa;
+  if (!o.available || !v.available) return `${ctx.dong}에는 한쪽 유형의 월세 거래가 없어 비교할 수 없습니다.`;
+  const cheaper = o.real <= v.real ? "오피스텔" : "연립·다세대";
   return [
-    `${ctx.dong} 중앙값 매물 기준으로는 ${cheaperType}가 월 ${m(diff)} 더 저렴합니다.`,
+    `${ctx.dong}에서는 ${cheaper}이 실질 월 ${m(Math.abs(o.real - v.real))} 더 저렴합니다.`,
     "",
-    `• 전세(${listingText(j.listing)}): 실질 월 ${m(j.cost.monthly)}`,
-    `• 월세(${listingText(w.listing)}): 실질 월 ${m(w.cost.monthly)}`,
+    `• 오피스텔: 실질 월 ${m(o.real)} (${sampleLine(o)})`,
+    `• 연립·다세대: 실질 월 ${m(v.real)} (${sampleLine(v)})`,
     "",
-    `전세는 보증금 기회비용(연 ${(ctx.annualRate * 100).toFixed(1)}% 가정)이 곧 주거비라, 이율 가정이 오르면 전세가 불리해집니다. 두 중앙값 매물은 면적·유형이 다를 수 있습니다.`,
+    "두 유형은 면적·관리비 구조가 다를 수 있고, 관리비는 계산에 넣지 않았습니다.",
   ].join("\n");
 }
 
 function compareDong(ctx: ExplainContext): string {
-  if (ctx.ranking.length === 0) return "비교할 동 데이터가 없습니다.";
+  if (!ctx.ranking.length) return "비교할 동 데이터가 없습니다.";
   const cheapest = ctx.ranking[0];
-  const current = ctx.ranking.find((d) => d.dong === ctx.dong);
-  const lines = [`${ctx.contractType} 중앙값 매물·내 조건 기준 실질 월 주거비 순위입니다.`, ""];
-  ctx.ranking.forEach((d, i) => lines.push(`${i + 1}. ${d.dong} ${m(d.cost.monthly)}${d.dong === ctx.dong ? " ← 선택" : ""}`));
-  if (current && current.dong !== cheapest.dong) {
-    lines.push("", `${cheapest.dong}으로 옮기면 월 ${m(current.cost.monthly - cheapest.cost.monthly)} 줄어듭니다.`);
-  } else if (current) {
-    lines.push("", `${ctx.dong}이 ${ctx.ranking.length}개 동 중 가장 저렴합니다.`);
-  }
+  const current = ctx.ranking.find((x) => x.dong === ctx.dong);
+  const lines = [`${typeLabel(ctx.u.housingType)}·내 조건 기준 실질 월 주거비 순위입니다.`, ""];
+  for (const x of ctx.ranking)
+    lines.push(`${x.rank}. ${x.dong} ${m(x.real)}${x.base.lowSample ? " (표본 부족)" : ""}${x.dong === ctx.dong ? " ← 선택" : ""}`);
+  if (current && current.dong !== cheapest.dong) lines.push("", `${cheapest.dong}으로 옮기면 월 ${m(current.real - cheapest.real)} 줄어듭니다.`);
+  else if (current) lines.push("", `${current.dong}이 가장 저렴합니다.`);
   return lines.join("\n");
 }
 
@@ -159,16 +142,17 @@ const TEMPLATES: Record<QuestionId, (ctx: ExplainContext) => string> = {
 /** 제한형 응답: 질문 유형별 템플릿 답변. 유형을 모르면 요약 + 안내. */
 export function templateAnswer(intent: QuestionId | null, ctx: ExplainContext): string {
   if (intent) return TEMPLATES[intent](ctx);
-  return `${summary(ctx)}\n\n제한형 응답 모드에서는 추천 질문 범위(요약·정책·전세/월세·동 비교)만 답할 수 있습니다.`;
+  return `${summary(ctx)}\n\n제한형 응답 모드에서는 추천 질문 범위(요약·정책·주택유형 비교·동 비교)만 답할 수 있습니다.`;
 }
 
-/** Claude에 넘길 계산 결과 요약(모든 수치는 서버에서 다시 계산한 값) */
+/** Claude에 넘길 계산 결과 요약(모든 수치는 서버에서 diagnoseDong으로 다시 계산한 값) */
 export function contextToPrompt(ctx: ExplainContext): string {
-  const { profile } = ctx;
+  const { u } = ctx;
+  const pct = Math.round((u.monthlyIncome / ctx.k.MEDIAN_1P) * 100);
   return [
-    `지역: 서울 ${DISTRICT} ${ctx.dong} / 계약유형: ${ctx.contractType} / 매물: ${listingText(ctx.listing)}`,
-    `사용자: ${profile.age}세, 연 소득 ${formatManwon(profile.annualIncomeManwon)}${profile.isNewlywed ? ", 신혼부부" : ""}`,
-    `기회비용 연이율: ${(ctx.annualRate * 100).toFixed(1)}%`,
+    `지역: 서울 ${DISTRICT} ${ctx.dong} / 주택유형: ${typeLabel(u.housingType)} / 보유 보증금: ${formatManwon(u.myDeposit ?? 0)}`,
+    `사용자: 만 ${u.age}세, 월소득 ${formatManwon(u.monthlyIncome)}(기준중위소득 ${pct}%), ${u.homeless ? "무주택" : "유주택"}, ${u.independent ? "독립거주" : "부모와 거주"}, ${u.single ? "1인 가구" : "2인 이상 가구"}`,
+    `전월세 전환율: 연 ${ctx.k.CONVERSION_RATE}%`,
     "",
     "[요약]",
     summary(ctx),
@@ -176,7 +160,7 @@ export function contextToPrompt(ctx: ExplainContext): string {
     "[정책]",
     policy(ctx),
     "",
-    "[전세 vs 월세]",
+    "[주택유형 비교]",
     compareType(ctx),
     "",
     "[동 비교]",

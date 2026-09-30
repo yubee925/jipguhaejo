@@ -6,7 +6,7 @@ import L, { type Path, type PathOptions } from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
 import { GeoJSON, MapContainer, Polygon as LeafletPolygon, TileLayer, useMap } from "react-leaflet";
 import { formatManwon } from "@/lib/format";
-import type { DongFeatureProps } from "@/lib/types";
+import type { DongFeatureProps } from "./AppProvider";
 import { boundsOf, outsideMask } from "./DongMap";
 
 type Props = {

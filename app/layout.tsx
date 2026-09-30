@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { computeDongMedians, loadDongGeoJson, loadPolicyData, loadRentData } from "@/lib/data";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { listDongs, loadConstants, loadPolicies, loadRent } from "@/lib/data";
+import type { SiteData } from "./components/AppProvider";
 import { AppProvider } from "./components/AppProvider";
 import SiteChat from "./components/SiteChat";
 import SiteFooter from "./components/SiteFooter";
@@ -27,10 +30,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   // 모든 페이지가 같은 데이터·조건을 쓰도록 여기서 한 번 읽는다
-  const data = {
-    policies: loadPolicyData(),
-    dongMedians: computeDongMedians(loadRentData()),
-    geojson: loadDongGeoJson(),
+  const rent = loadRent();
+  const data: SiteData = {
+    rent,
+    policies: loadPolicies(),
+    k: loadConstants(),
+    dongs: listDongs(rent),
+    geojson: JSON.parse(readFileSync(join(process.cwd(), "data/gwangjin_bjd.geojson"), "utf8")),
   };
 
   return (

@@ -1,0 +1,30 @@
+﻿file,column,meaning,values
+policies,category_code,계산 방식 구분,RENT=월세 현금지원 / LOAN=정책대출 / INTEREST=이자지원 / REFUND=비용 환급 / HOUSING=임대주택 / BENEFIT=복지급여
+policies,income_type,소득 기준 종류,MEDIAN_PCT=기준중위소득 % / ANNUAL=연소득(만원) / URBAN_PCT=도시근로자 월평균소득 %
+policies,income_min / income_max,소득 하한·상한,income_type 단위를 따름
+policies,single_only,1인가구만 가능,Y/N
+policies,asset_max,자산 상한,만원 (비어 있으면 기준 없음 또는 확인 필요)
+policies,parent_income_check,부모 소득 심사,Y=항상 / COND=조건부 / N=안 봄
+policies,housing_type,대상 계약 형태,RENT=월세 / JEONSE=전세 / BOTH=둘 다 / NA=임대주택 공급
+policies,deposit_max / rent_max,보증금·월세 상한,만원
+policies,benefit_monthly / benefit_months / benefit_lump,월 지원액·지원 개월·일시 지원액,만원 / 개월 / 만원
+policies,loan_limit / loan_rate,대출 한도·최저 금리,만원 / %
+policies,exclusive_with,함께 받을 수 없는 정책,policy_id를 | 로 구분
+policies,apply_open,2026-09-29 기준 신청 가능,Y/N
+policies,verify_needed,공식 공고 재확인 필요,Y/N
+constants,value,값,Y_FILL=직접 채워야 하는 칸
+rent_clean,dong,법정동,중곡동 등 7개
+rent_clean,housing_type,주택유형,officetel=오피스텔 / villa=연립다세대
+rent_clean,lease_type,계약 형태,RENT=월세 (전세는 제외함)
+rent_clean,area_m2,전용면적,㎡ (40 이하만 남김)
+rent_clean,deposit / rent,보증금·월세,만원
+rent_clean,is_new,신규 계약,Y=신규 / N=갱신 / 빈칸=구분 없음
+rent_clean,renewal_right_used,갱신요구권 사용,Y/N
+rent_clean,prev_deposit / prev_rent,갱신 전 보증금·월세,만원 (갱신 계약만)
+rent_clean,cap_seoul_rent,서울시·광진구 월세지원 매물 조건 충족,Y=보증금 8000 이하 & 월세 60 이하
+rent_clean,cap_youth_rent_loan,보증부월세대출 매물 조건 충족,Y=보증금 6500 이하 & 월세 70 이하 (면적 60㎡ 조건은 이미 충족)
+rent_summary,count,동별 신규 월세 계약 건수,건
+rent_summary,rent_median / deposit_median / area_median,동별 중앙값,만원 / 만원 / ㎡
+rent_summary,cap_seoul_rent_pct / cap_youth_rent_loan_pct,정책 매물 조건을 충족하는 계약 비율,%
+geojson,dong / emd_cd,법정동 이름·법정동 코드,실거래 파일의 dong과 같은 이름
+geojson,count ~ cap_youth_rent_loan_pct,동별 요약값을 미리 붙여둠,rent_gwangjin_summary_by_dong.csv와 같음 (신규 월세 기준)

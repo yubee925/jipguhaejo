@@ -2,8 +2,6 @@
 
 팀명·서비스명: 집구해조
 
-@AGENTS.md
-
 ## 서비스 한 줄 요약
 이용자가 나이·소득·무주택 여부·희망 동·보증금을 입력하면
 ① 신청 가능한 청년 주거정책을 매칭하고
@@ -17,7 +15,8 @@
 - 지역: 서울 광진구 7개 법정동. 동 이름/코드는 data/ 파일에서만 읽고 코드에 하드코딩하지 않는다 (나중에 동 추가·다른 구 확장 가능하게).
 - 지역 단위: 법정동 (국토부 실거래 데이터 기준).
 - 주택유형: 오피스텔, 연립·다세대만. 아파트·단독·다가구 제외.
-- 면적: 전용 60㎡ 이하.
+- 면적: 전용 40㎡ 이하 (현재 데이터 기준, config 의 AREA_MAX 로 관리).
+- 계약: 월세만 사용 (전세 제외). 정책이 월세 지원 중심이기 때문.
 - 범위 밖: 교통 접근성, 상권, 인구, 편의시설, 비수도권 비교 도시 (발표에서 확장 계획으로만 언급).
 
 ## 기술 스택
@@ -32,122 +31,117 @@
 - 정책 매칭과 금액 계산은 lib/ 의 순수 함수로 작성하고 단위 테스트를 함께 만든다. 화면 컴포넌트는 app/components/.
 - AI는 숫자를 계산하지 않는다. 계산 결과(JSON)를 받아 해설 문장만 만든다.
 - AI 해설 API는 화면이 보낸 계산 결과를 믿지 않고, 서버에서 입력 조건으로 다시 계산해 Claude에 넘긴다.
-- 계산 상수는 lib/config.ts 한 곳에서 관리한다 (환산 이율, 기준중위소득, 표본 최소 건수 등).
+- 계산 상수는 data/constants.csv 를 읽는 lib/config.ts 한 곳에서 관리한다.
 - 화면에는 "예상 금액이며 최종 자격은 공고 기준" 안내 문구를 넣는다.
 
-## 계산식
-config.ts 상수
-- RATE r = 0.045 (법정 전환율 = 한국은행 기준금리 + 2%p. 기준금리 확인 후 수정)
-- MEDIAN_INCOME_1P = 2026년 1인가구 기준중위소득(월, 만원). 확인 후 입력
-- MIN_SAMPLE = 10
+## 데이터 파일 (예나 작성 형식 기준)
+공통 규칙: CSV UTF-8, 영문 컬럼명, 금액 단위 만원(숫자만), 예/아니오 Y/N.
+컬럼의 정확한 의미와 값 목록은 data/columns_guide.csv 가 기준이다. 코드와 이 문서가 다르면 columns_guide.csv 를 따른다.
 
-1. 거래별 환산 월세 = 월세 + (보증금 × r ÷ 12)
-   - 전세 거래(월세 0)도 같은 식으로 환산해 포함한다.
-2. 동 기준 주거비 C = 해당 동 + 선택 주택유형 + 전용 60㎡ 이하 거래들의 ①값 중앙값
-   - 월세·보증금을 따로 중앙값 내지 않는다 (서로 다른 매물이 섞임).
+- data/constants.csv : key, name, value, unit, base_date, verify_needed, note, source_url
+  - MEDIAN_1P 256.4238 (1인 기준중위소득, 만원/월), MEDIAN_3P, URBAN_1P, URBAN_3P
+  - BOK_BASE_RATE 3.00 (%), CONVERSION_RATE 5.00 (%, 기준금리 + 2%p), MARKET_JEONSE_RATE 4.35 (%)
+  - lib/config.ts 는 이 파일을 읽어 상수를 제공한다. 숫자를 코드에 하드코딩하지 않는다.
+
+- data/rent_gwangjin_clean.csv (계산에 쓰는 전월세)
+  dong, housing_type, building, jibun, road_addr, lease_type, area_m2, contract_ym, contract_day,
+  deposit, rent, floor, built_year, lease_period, is_new, renewal_right_used, prev_deposit, prev_rent,
+  cap_seoul_rent, cap_youth_rent_loan
+  - housing_type: officetel / villa(연립·다세대). lease_type: RENT(월세만, 전세 제외)
+  - 기간 2025-09 ~ 2026-09, 7개 동, 5,578건
+- data/rent_gwangjin_summary_by_dong.csv : 동별 신규 월세 요약 (참고·검증용)
+- data/rent_gwangjin_raw_officetel.csv : 국토부 원본 (출처 증빙용, 계산에 쓰지 않음)
+
+- data/policies.csv
+  policy_id, 정책명·기관·연령 등 기본 컬럼 +
+  category_code (RENT=월세 현금지원 / LOAN=정책대출 / INTEREST=이자지원 / REFUND=비용 환급 / HOUSING=임대주택 / BENEFIT=복지급여),
+  income_type (MEDIAN_PCT / ANNUAL / URBAN_PCT), income_min, income_max,
+  single_only, asset_max, parent_income_check (Y / COND / N),
+  housing_type (RENT / JEONSE / BOTH / NA), deposit_max, rent_max,
+  benefit_monthly, benefit_months, benefit_lump, loan_limit, loan_rate,
+  exclusive_with (함께 못 받는 policy_id, | 로 구분), apply_open (Y/N), verify_needed (Y/N)
+
+- data/gwangjin_bjd.geojson
+  광진구 7개 법정동 경계, WGS84(CRS84). properties: dong, emd_cd, count, rent_median, deposit_median,
+  area_median, cap_seoul_rent_pct, cap_youth_rent_loan_pct. dong 이 rent 파일과 정확히 일치한다.
+
+## 계산식
+상수 (constants.csv 에서 읽음)
+- r = CONVERSION_RATE ÷ 100 (현재 0.05)
+- MIN_SAMPLE = 10, AREA_MAX = 40 (현재 데이터 기준. 60으로 바꾸면 데이터도 다시 뽑아야 함)
+
+1. 거래별 환산 월세 = rent + (deposit × r ÷ 12)
+2. 동 기준 주거비 C = 해당 동 + 선택 housing_type + 신규 계약(is_new=Y) 거래들의 ①값 중앙값
+   - 월세·보증금을 따로 중앙값 내지 않는다.
    - 거래가 MIN_SAMPLE 미만이면 "표본 부족" 표시.
-3. 정책 지원금 S
-   - 정책별 인정 지원액 = min(월 지원액, 실제 월세)
-   - S = 자격 충족 정책들의 인정 지원액 합
-   - stack_rule로 같이 못 받는 정책끼리는 가장 유리한 1개만 적용
-   - 기본 계산에는 selection=auto 이고 apply_open=Y 이거나 상시(always)인 정책만 포함
+3. 정책 지원금 S (월 계산에는 category_code=RENT 만 사용)
+   - 정책별 인정 지원액 = min(benefit_monthly, 실제 월세)
+   - S = 자격 충족 RENT 정책들의 인정 지원액 합
+   - exclusive_with 로 함께 못 받는 정책끼리는 가장 유리한 1개만 적용
+   - 기본 계산에는 apply_open=Y 인 정책만 포함
 4. 실질 월 주거비 = max(C − S, 0), 절감률 = S ÷ C × 100
-5. 연 주거비: 연차별 12개월 합. 각 달에 유효한 지원금만 차감하고, 정책 max_months가 끝난 달부터는 차감 없음. 1~3년차 + 3년 누적을 보여준다.
-6. 지역 비교: 모든 동에 같은 사용자 조건으로 1~5를 계산 → 실질 월 주거비 오름차순 순위, 차이 = 선택 동 − 비교 동. 지도 색상은 순위 기준 7단계(노랑 저렴 → 암갈색 비쌈, lib/scale.ts), 표본 부족 동은 회색.
+5. 연 주거비: 연차별 12개월 합. 각 달에 유효한 지원금만 차감하고 benefit_months 가 끝난 달부터는 차감 없음. 1~3년차 + 3년 누적.
+6. 지역 비교: 모든 동에 같은 조건으로 1~5 계산 → 실질 월 주거비 오름차순, 차이 = 선택 동 − 비교 동. 지도 색은 하위 1/3 초록, 중간 주황, 상위 1/3 빨강.
 7. (선택) 내 보증금 기준 예상 월세 = C − (내 보증금 × r ÷ 12)
 
-처리 규칙
-- 추첨형 정책(selection=lottery, 예: 광진형 청년월세): 기본 계산 제외, "선정 시" 금액을 따로 표시
-- 신청 마감 정책(apply_open=N): 기본 계산 제외, "내년 신청 시" 시나리오로 따로 표시
-- 관리비: 계산 제외, 화면에 "관리비 별도" 표시
-- 이자지원 정책(support_type=interest): 계산 제외, 보증금 카드로 설명
-- 중개보수·이사비 등 일회성(support_type=one_time): 월 계산과 섞지 않고 "초기 비용" 카드로 표시
+category_code 별 화면 처리
+- RENT: 월 계산에 반영 (apply_open=N 이면 "내년 신청 시" 시나리오로 따로 표시)
+- 추첨으로 선정하는 정책(예: 광진형 청년월세)은 기본 계산에서 빼고 "선정 시" 금액을 따로 표시. 추첨 여부 컬럼이 없으면 해당 policy_id 목록을 config 에 둔다.
+- INTEREST: 계산 제외, 보증금 이자지원 카드
+- LOAN: 계산 제외, 정책대출 카드 (한도·금리 안내)
+- REFUND / benefit_lump: 월 계산과 섞지 않고 "초기 비용" 카드
+- HOUSING: 계산 제외, 임대주택 안내 카드
+- BENEFIT: 계산 제외, 복지급여 안내 카드
+- verify_needed=Y 인 정책은 카드에 "공고 재확인 필요" 표시
+- 관리비는 계산 제외, 화면에 "관리비 별도" 표시
 
-검증 예시 (테스트 케이스로 사용)
-- 월세 55, 보증금 1000, r 4.5% → C = 58.75
-- 국토부 청년월세 월 20 × 24개월 적용 → 실질 월 38.75, 절감률 약 34%
-- 1·2년차 각 465, 3년차 705, 3년 누적 1635 (지원 없으면 2115)
+검증 예시 (테스트 케이스로 사용, r = 5%)
+- 월세 55, 보증금 1000 → C = 55 + 4.17 = 59.17
+- RENT 정책 월 20 × 24개월 적용 → 실질 월 39.17, 절감률 약 33.8%
+- 1·2년차 각 470, 3년차 710, 3년 누적 1650 (지원 없으면 2130, 480 절감)
 
 ## 소득 판정
 - 사용자 입력: 월소득(만원)
-- 소득 비율 = 월소득 ÷ MEDIAN_INCOME_1P × 100 → 정책 income_pct 이하이면 충족
-- 원가구(부모) 소득 조건(parent_income_pct)은 입력 항목 추가 여부 보류 중. 결정 전까지는 "부모 소득 조건 확인 필요" 안내로 처리하고 판정에서는 충족으로 가정한다.
-
-## 데이터 스키마 (실제 데이터 전달 전까지는 같은 형식의 샘플 데이터 사용)
-공통 규칙: CSV UTF-8, 영문 컬럼명, 금액 단위 만원(숫자만), 예/아니오 Y/N, 빈칸 = 조건 없음.
-
-- data/rent_data.csv
-  dong, contract_ym, house_type, area_m2, deposit, monthly_rent, floor, built_year
-  (house_type: officetel / rowhouse. 전세는 monthly_rent = 0)
-
-- data/policy_data.csv
-  policy_id, name, level, agency,
-  min_age, max_age, residence, homeless_required, independent_required, single_only,
-  income_pct, parent_income_pct, parent_exempt, asset_limit,
-  deposit_limit, rent_limit,
-  support_type, monthly_support, max_months, total_limit, interest_rate, lifetime_once,
-  stack_rule, selection, apply_start, apply_end, apply_open,
-  source_url, source_date, notes
-  (level: national / seoul / gu, residence: none / seoul / gwangjin,
-   support_type: monthly / interest / one_time, selection: auto / lottery,
-   stack_rule: 같이 못 받는 policy_id를 ; 로 구분, apply_start/apply_end: YYYY-MM-DD 또는 always)
-
-- data/gwangjin_dong.geojson
-  광진구 법정동 경계, 좌표계 WGS84(EPSG:4326), 단순화된 경계.
-  properties.dong 이 rent_data 의 dong 과 정확히 일치해야 함.
+- income_type 별 판정
+  - MEDIAN_PCT: 월소득 ÷ MEDIAN_1P × 100 이 income_min ~ income_max 사이
+  - ANNUAL: 월소득 × 12 가 income_min ~ income_max 사이 (만원)
+  - URBAN_PCT: 월소득 ÷ URBAN_1P × 100 이 income_min ~ income_max 사이
+- 빈칸은 조건 없음으로 본다.
+- parent_income_check: N 이면 무시, Y 또는 COND 면 판정은 충족으로 가정하고 "부모 소득 조건 확인 필요" 안내를 붙인다 (입력 항목 추가 여부 보류 중).
+- asset_max: 입력 항목이 없으므로 안내 문구로만 표시.
 
 ## LLM Wiki (정책 설명·근거 층)
 - raw/ : 정책 공고문 원문 (파일명 P01_정책명.pdf 형식)
 - wiki/rules.md : 위키 페이지 작성 규칙 (조건, 중복 규칙, 출처 항목)
 - wiki/P01_정책명.md : 정책별 페이지. 모든 조건에 출처(공고문 몇 항)를 남긴다.
-- 위키에서 숫자 조건만 뽑은 CSV를 수작업 policy_data.csv(정답지)와 비교해 정확도를 기록한다.
+- 위키에서 숫자 조건만 뽑은 CSV를 수작업 policies.csv(정답지)와 비교해 정확도를 기록한다.
 - AI 해설은 해당 정책의 위키 페이지를 근거로 참고하고 "근거: ○○ 공고"를 표시한다.
-- 자격 판정과 금액 계산에는 위키를 쓰지 않는다. 계산은 항상 policy_data.csv 기준.
-- wiki/project/ : 프로젝트 위키(계산식·데이터·구조·결정 기록·변경 이력). 목차는 wiki/project/index.md. 계산식·데이터 형식·화면·API를 바꾸면 같은 작업에서 관련 문서와 wiki/project/log.md 를 함께 고친다. raw/ 원본은 수정하지 않는다.
+- 자격 판정과 금액 계산에는 위키를 쓰지 않는다. 계산은 항상 policies.csv 기준.
 
-## 화면 구성 (웹사이트) — 2026-09-30 강사 피드백 반영
-대시보드 한 화면이 아니라 메뉴와 페이지가 있는 웹사이트다.
+## 화면 구성 (대시보드, 한 화면)
+1. 상단 헤더: 작은 영문 라벨 "YOUTH REAL HOUSING COST", 서비스명 "집구해조", 한 줄 설명 "지원정책을 반영한 나의 진짜 주거비", 모드 토글 [내 조건 진단 / 지역 비교]
+2. 좌측: 조건 입력 카드 (나이, 월소득, 무주택, 독립거주, 주택유형, 보유 보증금) + 광진구 지도
+   - 지도 색상 = 실질 월 주거비, 동 클릭 시 선택
+   - 배경 타일은 연한 회색 톤, 폴리곤 fillOpacity 0.55 정도, 얇은 흰 테두리
+3. 중앙: 선택 동 상세 분석 패널
+   - 정책 적용 전 / 후 월 주거비 큰 숫자 카드, 절감률
+   - 비용 구성 막대 (월세, 보증금 환산분, 지원금 차감)
+   - 매칭된 정책 카드 (확정 지원 / 선정 시 / 내년 신청 시 구분, 신청 링크)
+   - 초기 비용 카드, 보증금 이자지원 카드
+   - 월 / 연 토글, 연 단위는 1~3년차 표와 3년 누적
+   - 거래 건수 표시, 표본 부족이면 경고
+4. 우측: 주거비 해석 AI Agent
+   - 연결 상태 배지 (실제 LLM / 제한형 응답 모드)
+   - 추천 질문 버튼 4개
+   - 답변 영역(근거 표시) + 질문 입력창
+5. 푸터: © 2026 집구해조, 데이터 출처(국토교통부 실거래가, 각 정책 공고), "예상 금액이며 최종 자격은 공고 기준"
 
-- 공통 헤더: 작은 영문 라벨 "YOUTH REAL HOUSING COST" + 서비스명 "집구해조", 메뉴 [주거비 진단 / 동네 비교 / 청년 주거정책 / 서비스 소개]
-- 공통 푸터: © 2026 집구해조, 데이터 출처(국토교통부 실거래가, 각 정책 공고), "예상 금액이며 최종 자격은 공고 기준"
-- AI 도우미: 모든 페이지 오른쪽 아래 캐릭터 "구해봇" 버튼 → 채팅 창
-  - 연결 상태 배지 (실제 LLM / 제한형 응답 모드), 추천 질문 버튼 4개, 답변 영역(근거 표시) + 질문 입력창
-- 사용자 조건은 사이트 전체에서 공유한다(app/components/AppProvider.tsx). 페이지를 옮겨도 유지.
-
-페이지
-1. 홈 `/` : 한 줄 설명 "지원정책을 반영한 나의 진짜 주거비", [내 주거비 진단하기]·[동네 비교 보기] 버튼, 이용 방법 3단계, 실질 주거비 설명
-2. 주거비 진단 `/diagnosis`
-   - 왼쪽: 조건 입력 카드 (나이, 월소득, 무주택, 독립거주, 주택유형, 보유 보증금, 희망 동)
-   - 오른쪽 위: 선택한 동 지도 — 선택 동만 색칠, 나머지 동은 회색, 선택 동으로 이동. 회색 동 클릭 시 그 동으로 변경
-   - 오른쪽 아래: 진단 결과
-     - 정책 적용 전 / 후 월 주거비 큰 숫자 카드, 절감률
-     - 비용 구성 막대 (월세, 보증금 환산분, 지원금 차감)
-     - 매칭된 정책 카드 (확정 지원 / 선정 시 / 내년 신청 시 구분, 신청 링크)
-     - 초기 비용 카드, 보증금 이자지원 카드
-     - 월 / 연 토글, 연 단위는 1~3년차 표와 3년 누적
-     - 거래 건수 표시, 표본 부족이면 경고
-3. 동네 비교 `/compare` : 광진구 지도 + 저렴한 순 목록, 선택한 동 요약과 [이 동으로 자세히 진단] 버튼
-   - 지도 색상 = 실질 월 주거비, 조건 변경 시 색·금액 애니메이션
-   - 배경 타일 연한 회색, 폴리곤 fillOpacity 0.55 정도, 얇은 흰 테두리, 광진구 바깥은 흐리게 가림
-4. 청년 주거정책 `/policies` : 정책 카드 목록, 내 조건 기준 해당 여부와 이유
-5. 서비스 소개 `/about` : 계산 방법, 데이터 출처, 안내 문구, 팀
-
-## 디자인 (현재 톤 유지)
-- 배경: 연한 회색 (#f6f7f9), 카드: 흰색, 둥근 모서리, 옅은 테두리
-- 포인트 색: 파랑 (#2563eb), 지원·절감 표시는 초록 (#047857)
-- 지도: 순위 기준 7단계 다색 팔레트 (lib/scale.ts ORDERED), 표본 부족 동은 회색
+## 디자인
+- 배경: 따뜻한 아이보리 (#FAF7F2 계열), 카드: 흰색, 둥근 모서리, 옅은 테두리
+- 포인트 색: 딥그린 (#1F4D3A 계열)
+- 상태 색: 초록 #5B9A78 (저렴) / 주황 #E0A458 (보통) / 빨강 #D0654F (부담 큼)
 - 작은 영문 라벨(대문자, 자간 넓게) + 굵은 한글 제목 조합
-- 모바일에서는 세로로 쌓기
-
-## 현재 구현 상태 (2026-09-30) — 위 명세와 다른 점
-위 계산식·소득 판정·데이터 스키마는 목표 명세이고, 코드는 아직 이전 방식이다. 명세로 옮기는 작업이 남아 있다.
-- 계산: 동별 보증금·월세 중앙값을 따로 구해 계산 중 (명세: 거래별 환산 월세의 중앙값)
-- 정책: 같은 유형 중 최대 1건만 적용, 이자지원·대출도 월 계산에 포함 중 (명세: stack_rule, interest·one_time 별도 카드)
-- 연 주거비: 월 × 12 (명세: max_months 반영 1~3년차)
-- 소득: 연 소득 한도로 판정 (명세: 월소득 ÷ 기준중위소득)
-- 조건 입력: 나이, 연 소득, 신혼부부, 계약유형(전세/월세), 보증금, 월세, 기회비용 이율 (명세 입력 항목과 다름)
-- 데이터: data/rent_data.csv·policy_data.csv 는 이전 스키마의 샘플, 경계 파일은 data/dong_boundaries.geojson (임시 사각형)
-- 실제 데이터(실거래가, 동 경계)는 2026-10-01 받아 올 예정
+- 데스크톱 3단 레이아웃, 모바일에서는 세로로 쌓기
 
 ## 작업 방식
 - 한 번에 한 기능씩 구현하고, 끝나면 npm run dev 로 확인 가능하게 둔다.

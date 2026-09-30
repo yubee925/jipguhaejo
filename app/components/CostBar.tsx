@@ -21,7 +21,7 @@ export default function CostBar({ rent, depositCost, support, format }: Props) {
 
   const segments: Segment[] = [
     { key: "rent", label: "월세", value: rent, color: "var(--series-1)" },
-    { key: "deposit", label: "보증금 기회비용", value: depositCost, color: "var(--series-2)" },
+    { key: "deposit", label: "보증금 환산분", value: depositCost, color: "var(--series-2)" },
   ].filter((s) => s.value > 0);
 
   if (gross <= 0) {
@@ -35,7 +35,7 @@ export default function CostBar({ rent, depositCost, support, format }: Props) {
   const pct = (v: number) => `${(v / gross) * 100}%`;
   const hovered =
     hover === "support"
-      ? { label: "정책 지원 (차감)", value: support }
+      ? { label: "지원금 차감", value: support }
       : segments.find((s) => s.key === hover);
 
   return (
@@ -82,7 +82,7 @@ export default function CostBar({ rent, depositCost, support, format }: Props) {
           <li className="flex items-center justify-between" onMouseEnter={() => setHover("support")} onMouseLeave={() => setHover(null)}>
             <span className="flex items-center gap-2 text-muted">
               <span className="h-2.5 w-2.5 rounded-sm border border-foreground/40" style={{ background: "repeating-linear-gradient(45deg, #9ca3af 0 2px, #fff 2px 4px)" }} />
-              정책 지원 (차감)
+              지원금 차감
             </span>
             <span className="tabular-nums text-positive">−{format(support)}</span>
           </li>

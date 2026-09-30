@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { parseConditions, type Conditions } from "@/lib/conditions";
-import { computeDongMedians, loadPolicyData, loadRentData } from "@/lib/data";
+import { toUserInput, type Conditions } from "@/lib/conditions";
+import { listDongs, loadConstants, loadPolicies, loadRent } from "@/lib/data";
 import { DISTRICT } from "@/lib/region";
 import {
   buildExplainContext,
@@ -17,17 +17,25 @@ const MAX_QUESTION_LENGTH = 300;
 const SYSTEM_PROMPT = `당신은 서울 ${DISTRICT} 주거비 대시보드의 해설 도우미입니다.
 <calculation> 안의 수치만 근거로 사용자의 질문에 한국어로 답하세요.
 - 새 수치를 추정하거나 만들지 마세요. 계산에 없는 정보(실제 시세, 최신 정책 공고 등)는 모른다고 말하세요.
-- 데이터는 샘플이고 정책 수치는 예시입니다. 판단에 영향을 줄 때만 짧게 언급하세요.
+- 시세는 국토교통부 월세 실거래가(신규 계약)로 계산했고, 정책 수치는 아직 예시입니다. 판단에 영향을 줄 때만 짧게 언급하세요.
+- 관리비는 계산에 포함되지 않았고, 모든 금액은 예상 금액이며 최종 자격은 공고 기준임을 필요할 때 알려 주세요.
 - 주거비·정책과 무관한 질문에는 이 대시보드 범위에서만 답할 수 있다고 안내하세요.
 - 5~8문장 이내로, 마크다운 제목·표·굵은 글씨 없이 평문과 "•" 목록만 쓰세요.
 지연에 민감한 화면이니 바로 답을 시작하세요.`;
 
 type ExplainMode = "ai" | "template";
 
-let dataCache: { policies: ReturnType<typeof loadPolicyData>; dongMedians: ReturnType<typeof computeDongMedians> } | null =
-  null;
+let dataCache: {
+  rent: ReturnType<typeof loadRent>;
+  policies: ReturnType<typeof loadPolicies>;
+  k: ReturnType<typeof loadConstants>;
+  dongs: string[];
+} | null = null;
 function getData() {
-  dataCache ??= { policies: loadPolicyData(), dongMedians: computeDongMedians(loadRentData()) };
+  if (!dataCache) {
+    const rent = loadRent();
+    dataCache = { rent, policies: loadPolicies(), k: loadConstants(), dongs: listDongs(rent) };
+  }
   return dataCache;
 }
 
@@ -70,13 +78,14 @@ export async function POST(request: Request) {
   }
 
   const data = getData();
-  const input = parseConditions(body.conditions as Conditions);
-  if (!data.dongMedians[input.dong]) {
-    return Response.json({ error: `알 수 없는 동입니다: ${input.dong}` }, { status: 400 });
+  const conditions = body.conditions as Conditions;
+  const dong = String(conditions.dong ?? "");
+  if (!data.dongs.includes(dong)) {
+    return Response.json({ error: `알 수 없는 동입니다: ${dong}` }, { status: 400 });
   }
 
-  // 화면이 보낸 결과가 아니라 조건으로 서버에서 다시 계산한 값만 사용
-  const ctx = buildExplainContext(input, data);
+  // 화면이 보낸 결과가 아니라 조건으로 서버에서 diagnoseDong 으로 다시 계산한 값만 사용
+  const ctx = buildExplainContext(toUserInput(conditions), dong, data);
   const knownId = SUGGESTED_QUESTIONS.find((q) => q.id === body.questionId)?.id;
   const intent: QuestionId | null = knownId ?? detectIntent(question);
   const fallback = () => templateAnswer(intent, ctx);

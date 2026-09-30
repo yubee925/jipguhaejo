@@ -1,2 +1,2 @@
-/** 대시보드가 다루는 자치구. 샘플 데이터(scripts/generate-sample-data.mjs)와 맞춰야 한다. */
+/** 서비스가 다루는 자치구 이름(화면 문구용). 동 이름·코드는 data/ 파일에서만 읽는다. */
 export const DISTRICT = "광진구";

@@ -1,0 +1,6 @@
+policy_id,name,agency,level,min_age,max_age,residence,homeless_required,independent_required,category_code,income_type,income_min,income_max,single_only,asset_max,parent_income_check,housing_type,deposit_max,rent_max,benefit_monthly,benefit_months,benefit_lump,loan_limit,loan_rate,exclusive_with,apply_open,lottery,verify_needed,source_url,notes
+P01,청년월세 특별지원,국토교통부,national,19,34,none,Y,Y,RENT,MEDIAN_PCT,,60,N,,Y,RENT,5000,70,20,24,,,,P02|P03,Y,N,Y,,예시(실제 policies.csv로 교체 필요)
+P02,서울시 청년월세지원,서울특별시,seoul,19,39,seoul,Y,Y,RENT,MEDIAN_PCT,,150,N,,N,RENT,8000,60,20,12,,,,P01|P03,N,Y,Y,,예시(실제 policies.csv로 교체 필요)
+P03,광진형 청년월세,광진구,gu,19,39,gwangjin,Y,Y,RENT,MEDIAN_PCT,,150,N,,N,RENT,8000,60,10,10,,,,P01|P02,Y,Y,Y,,예시(실제 policies.csv로 교체 필요)
+P04,서울시 청년 임차보증금 이자지원,서울특별시,seoul,19,39,seoul,Y,N,INTEREST,MEDIAN_PCT,,150,N,,N,BOTH,30000,,,,,20000,3.0,,Y,N,Y,,예시(실제 policies.csv로 교체 필요)
+P05,서울시 청년 부동산 중개보수·이사비 지원,서울특별시,seoul,19,39,seoul,Y,N,REFUND,MEDIAN_PCT,,150,N,,N,BOTH,20000,,,,40,,,,Y,N,Y,,예시(실제 policies.csv로 교체 필요)

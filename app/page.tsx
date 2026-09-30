@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { computeDongMedians, loadPolicyData, loadRentData } from "@/lib/data";
+import { listDongs, loadPolicies, loadRent } from "@/lib/data";
 import { DISTRICT } from "@/lib/region";
 import Mascot from "./components/Mascot";
 
 const STEPS = [
-  { title: "내 조건 입력", body: "나이, 소득, 찾는 집의 보증금·월세를 입력합니다." },
+  { title: "내 조건 입력", body: "나이, 월소득, 무주택 여부, 찾는 주택유형과 가진 보증금을 입력합니다." },
   { title: "정책 자동 매칭", body: "받을 수 있는 청년 주거정책을 찾아 지원금을 반영합니다." },
-  { title: "진짜 주거비 확인", body: "보증금 기회비용까지 더한 실질 월·연 주거비와 동네 순위를 봅니다." },
+  { title: "진짜 주거비 확인", body: "실거래가로 계산한 동네 시세에서 지원금을 뺀 실질 월·연 주거비와 동네 순위를 봅니다." },
 ];
 
 export default function Home() {
-  const dongCount = Object.keys(computeDongMedians(loadRentData())).length;
-  const policyCount = loadPolicyData().length;
+  const dongCount = listDongs(loadRent()).length;
+  const policyCount = loadPolicies().length;
 
   return (
     <>
@@ -26,7 +26,7 @@ export default function Home() {
               나의 <span className="text-accent">진짜 주거비</span>
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-muted">
-              월세만 보면 놓치는 비용이 있습니다. 집구해조는 보증금의 기회비용과 받을 수 있는 청년 주거정책까지 계산해,{" "}
+              월세만 보면 놓치는 비용이 있습니다. 집구해조는 국토교통부 월세 실거래가로 보증금까지 환산한 동네 시세를 구하고, 받을 수 있는 청년 주거정책을 빼서{" "}
               {DISTRICT}에서 실제로 한 달에 얼마가 드는지 알려 드립니다.
             </p>
             <div className="flex flex-wrap gap-3">

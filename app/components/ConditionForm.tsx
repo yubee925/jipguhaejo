@@ -1,10 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { formatManwon } from "@/lib/format";
-import type { Conditions } from "@/lib/conditions";
+import { HOUSING_TYPE_LABEL, type Conditions } from "@/lib/conditions";
 import { DISTRICT } from "@/lib/region";
-import type { DongMedians } from "@/lib/types";
+import type { HousingType } from "@/lib/types";
 import Card from "./Card";
 
 export type { Conditions };
@@ -12,15 +11,16 @@ export type { Conditions };
 type Props = {
   value: Conditions;
   onChange: (next: Conditions) => void;
-  dongMedians: DongMedians;
-  /** 동 변경(해당 동 중앙값으로 입력값 교체) */
-  onDongChange: (dong: string) => void;
+  /** 선택할 수 있는 동 (데이터에서 읽음) */
+  dongs: string[];
+  /** 1인가구 기준중위소득(월, 만원) — 소득 비율 안내용 */
+  medianIncome: number;
 };
 
 const inputClass =
   "h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm tabular-nums outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:bg-background disabled:text-muted";
 
-function Field({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
+function Field({ label, unit, hint, children }: { label: string; unit?: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-muted">{label}</span>
@@ -30,6 +30,7 @@ function Field({ label, unit, children }: { label: string; unit?: string; childr
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">{unit}</span>
         )}
       </div>
+      {hint && <span className="text-[11px] text-muted">{hint}</span>}
     </label>
   );
 }
@@ -39,7 +40,7 @@ function Segmented<T extends string>({
   value,
   onChange,
 }: {
-  options: readonly T[];
+  options: readonly { value: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
 }) {
@@ -47,30 +48,36 @@ function Segmented<T extends string>({
     <div className="grid grid-flow-col auto-cols-fr rounded-lg bg-background p-0.5">
       {options.map((opt) => (
         <button
-          key={opt}
+          key={opt.value}
           type="button"
-          aria-pressed={value === opt}
-          onClick={() => onChange(opt)}
+          aria-pressed={value === opt.value}
+          onClick={() => onChange(opt.value)}
           className={`h-8 rounded-md text-sm transition ${
-            value === opt ? "bg-surface font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.08)]" : "text-muted hover:text-foreground"
+            value === opt.value ? "bg-surface font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.08)]" : "text-muted hover:text-foreground"
           }`}
         >
-          {opt}
+          {opt.label}
         </button>
       ))}
     </div>
   );
 }
 
-export default function ConditionForm({ value, onChange, dongMedians, onDongChange }: Props) {
-  const set = <K extends keyof Conditions>(key: K, v: Conditions[K]) => onChange({ ...value, [key]: v });
-  const isJeonse = value.contractType === "전세";
-  const median = dongMedians[value.dong]?.[value.contractType];
+function Check({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      {children}
+    </label>
+  );
+}
 
-  const applyMedian = () => {
-    if (!median) return;
-    onChange({ ...value, deposit: String(median.deposit), monthlyRent: String(median.monthly_rent) });
-  };
+const HOUSING_TYPES = (Object.keys(HOUSING_TYPE_LABEL) as HousingType[]).map((v) => ({ value: v, label: HOUSING_TYPE_LABEL[v] }));
+
+export default function ConditionForm({ value, onChange, dongs, medianIncome }: Props) {
+  const set = <K extends keyof Conditions>(key: K, v: Conditions[K]) => onChange({ ...value, [key]: v });
+  const income = Number(value.monthlyIncome);
+  const pct = Number.isFinite(income) && income > 0 ? Math.round((income / medianIncome) * 100) : null;
 
   return (
     <Card title="내 조건 입력" subtitle="바꾸면 결과가 바로 바뀌어요" className="flex-1">
@@ -81,59 +88,39 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
             <Field label="나이" unit="세">
               <input type="number" inputMode="numeric" min={0} className={`${inputClass} pr-14`} value={value.age} onChange={(e) => set("age", e.target.value)} />
             </Field>
-            <Field label="연 소득" unit="만원">
-              <input type="number" inputMode="numeric" min={0} step={100} className={`${inputClass} pr-14`} value={value.annualIncome} onChange={(e) => set("annualIncome", e.target.value)} />
+            <Field label="월소득" unit="만원" hint={pct !== null ? `기준중위소득의 ${pct}%` : "세전 월 소득"}>
+              <input type="number" inputMode="numeric" min={0} step={10} className={`${inputClass} pr-14`} value={value.monthlyIncome} onChange={(e) => set("monthlyIncome", e.target.value)} />
             </Field>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={value.isNewlywed} onChange={(e) => set("isNewlywed", e.target.checked)} />
-            신혼부부 (혼인 7년 이내)
-          </label>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Check checked={value.homeless} onChange={(v) => set("homeless", v)}>
+              무주택
+            </Check>
+            <Check checked={value.independent} onChange={(v) => set("independent", v)}>
+              부모와 따로 거주(독립)
+            </Check>
+            <Check checked={value.single} onChange={(v) => set("single", v)}>
+              1인 가구
+            </Check>
+          </div>
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
-          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">찾는 집 (금액 단위: 만원)</legend>
-          <Field label={`지역 (${DISTRICT})`}>
-            <select className={inputClass} value={value.dong} onChange={(e) => onDongChange(e.target.value)}>
-              {Object.keys(dongMedians).map((d) => (
-                <option key={d}>{d}</option>
-              ))}
-            </select>
-          </Field>
-          <Segmented
-            options={["전세", "월세"] as const}
-            value={value.contractType}
-            onChange={(v) => onChange({ ...value, contractType: v, monthlyRent: v === "전세" ? "0" : value.monthlyRent })}
-          />
+          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">찾는 집 (월세)</legend>
+          <Segmented options={HOUSING_TYPES} value={value.housingType} onChange={(v) => set("housingType", v)} />
           <div className="grid grid-cols-2 gap-3">
-            <Field label="보증금" unit="만원">
-              <input type="number" inputMode="numeric" min={0} step={100} className={`${inputClass} pr-14`} value={value.deposit} onChange={(e) => set("deposit", e.target.value)} />
+            <Field label={`지역 (${DISTRICT})`}>
+              <select className={inputClass} value={value.dong} onChange={(e) => set("dong", e.target.value)}>
+                {dongs.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
             </Field>
-            <Field label="월세" unit="만원">
-              <input type="number" inputMode="numeric" min={0} step={5} disabled={isJeonse} className={`${inputClass} pr-14`} value={isJeonse ? "0" : value.monthlyRent} onChange={(e) => set("monthlyRent", e.target.value)} />
+            <Field label="보유 보증금" unit="만원">
+              <input type="number" inputMode="numeric" min={0} step={100} className={`${inputClass} pr-14`} value={value.myDeposit} onChange={(e) => set("myDeposit", e.target.value)} />
             </Field>
           </div>
-          {median && (
-            <div className="flex items-center justify-between gap-2 rounded-lg bg-background px-3 py-2 text-xs">
-              <span className="text-muted">
-                {value.dong} {value.contractType} 중앙값{" "}
-                <span className="font-medium text-foreground tabular-nums">
-                  {formatManwon(median.deposit)}
-                  {!isJeonse && ` / ${formatManwon(median.monthly_rent)}`}
-                </span>
-              </span>
-              <button type="button" onClick={applyMedian} className="shrink-0 font-medium text-accent hover:underline">
-                적용
-              </button>
-            </div>
-          )}
-        </fieldset>
-
-        <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
-          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">계산 설정</legend>
-          <Field label="보증금 기회비용 연이율" unit="%">
-            <input type="number" inputMode="decimal" min={0} step={0.1} className={`${inputClass} pr-14`} value={value.annualRatePct} onChange={(e) => set("annualRatePct", e.target.value)} />
-          </Field>
+          <p className="text-[11px] leading-relaxed text-muted">전용 40㎡ 이하 월세 실거래(신규 계약)의 중앙값으로 동네 시세를 계산합니다.</p>
         </fieldset>
       </form>
     </Card>

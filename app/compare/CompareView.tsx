@@ -6,33 +6,30 @@ import { DISTRICT } from "@/lib/region";
 import AnimatedNumber from "../components/AnimatedNumber";
 import { useApp } from "../components/AppProvider";
 import MapCard from "../components/MapCard";
+import { HOUSING_TYPE_LABEL } from "@/lib/conditions";
 
 const won = (v: number) => formatManwon(v, 1);
 
 export default function CompareView() {
-  const { geojson, dongCosts, conditions, selectDong, parsed } = useApp();
-  const ranked = [...dongCosts].sort((a, b) => a.cost.monthly - b.cost.monthly);
-  const rank = ranked.findIndex((d) => d.dong === conditions.dong);
-  const current = ranked[rank];
+  const { geojson, comparison, conditions, selectDong, user } = useApp();
+  const { ranked } = comparison;
+  const current = ranked.find((x) => x.dong === conditions.dong);
   const cheapest = ranked[0];
-  const { profile } = parsed;
+  const typeLabel = HOUSING_TYPE_LABEL[user.housingType];
 
   return (
     <div className="flex flex-col gap-4">
       <p className="rounded-xl bg-surface px-4 py-3 text-sm text-muted ring-1 ring-border">
-        비교 조건: <span className="font-medium text-foreground">{profile.age}세 · 연 소득 {formatManwon(profile.annualIncomeManwon)}{profile.isNewlywed ? " · 신혼부부" : ""} · {conditions.contractType}</span>{" "}
+        비교 조건:{" "}
+        <span className="font-medium text-foreground">
+          만 {user.age}세 · 월소득 {formatManwon(user.monthlyIncome)} · {user.homeless ? "무주택" : "유주택"} · {typeLabel}
+        </span>{" "}
         <Link href="/diagnosis" className="ml-1 font-semibold text-accent hover:underline">
           조건 바꾸기
         </Link>
       </p>
 
-      <MapCard
-        geojson={geojson}
-        dongCosts={dongCosts}
-        contractType={conditions.contractType}
-        selected={conditions.dong}
-        onSelect={selectDong}
-      />
+      <MapCard geojson={geojson} comparison={comparison} housingType={user.housingType} selected={conditions.dong} onSelect={selectDong} />
 
       {current && (
         <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -41,16 +38,15 @@ export default function CompareView() {
             <div className="mt-1 text-lg font-bold">
               {DISTRICT} {current.dong}{" "}
               <span className="text-sm font-medium text-muted">
-                {ranked.length}개 동 중 {rank + 1}번째로 저렴
+                {ranked.length}개 동 중 {current.rank}번째로 저렴{current.base.lowSample ? " · 표본 부족" : ""}
               </span>
             </div>
             <div className="mt-1 text-sm">
-              실질 월 주거비 <AnimatedNumber value={current.cost.monthly} format={won} className="font-semibold" />
+              실질 월 주거비 <AnimatedNumber value={current.real} format={won} className="font-semibold" />
               {cheapest && cheapest.dong !== current.dong && (
                 <span className="text-muted">
                   {" "}
-                  · 가장 저렴한 {cheapest.dong}보다 월{" "}
-                  <AnimatedNumber value={current.cost.monthly - cheapest.cost.monthly} format={won} /> 더 듦
+                  · 가장 저렴한 {cheapest.dong}보다 월 <AnimatedNumber value={current.real - cheapest.real} format={won} /> 더 듦
                 </span>
               )}
             </div>

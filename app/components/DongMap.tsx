@@ -6,7 +6,7 @@ import L, { type LatLngBounds, type Path, type PathOptions } from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
 import { GeoJSON, MapContainer, Polygon as LeafletPolygon, TileLayer, useMap } from "react-leaflet";
 import { formatManwon } from "@/lib/format";
-import type { DongFeatureProps } from "@/lib/types";
+import type { DongFeatureProps } from "./AppProvider";
 
 type Props = {
   geojson: FeatureCollection<Polygon, DongFeatureProps>;
@@ -34,7 +34,7 @@ export function boundsOf(geojson: FeatureCollection<Polygon>): LatLngBounds {
 }
 
 const labelHtml = (dong: string, value: number | undefined) =>
-  `<strong>${dong}</strong><br/><span>${value === undefined ? "-" : formatManwon(value, 1)}</span>`;
+  `<strong>${dong}</strong><br/><span>${value === undefined ? "거래 없음" : formatManwon(value, 1)}</span>`;
 
 /**
  * 자치구 바깥을 가리는 마스크: 넓은 사각형에서 각 동 경계를 구멍으로 뚫는다.
