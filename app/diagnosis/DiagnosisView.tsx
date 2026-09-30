@@ -29,6 +29,12 @@ export default function DiagnosisView() {
     <div className="grid items-start gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
       <div className="flex flex-col gap-3 lg:sticky lg:top-24">
         <ConditionForm value={conditions} onChange={setConditions} dongs={dongs} medianIncome={k.MEDIAN_1P} />
+        <Link
+          href="/recommend"
+          className="rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-accent/90"
+        >
+          이 조건으로 집 추천받기 →
+        </Link>
         <Link href="/compare" className="text-center text-sm font-semibold text-accent hover:underline">
           다른 동과 비교해 보기 →
         </Link>

@@ -6,7 +6,7 @@ import Mascot from "./components/Mascot";
 const STEPS = [
   { title: "내 조건 입력", body: "나이, 월소득, 무주택 여부, 찾는 주택유형과 가진 보증금을 입력합니다." },
   { title: "정책 자동 매칭", body: "받을 수 있는 청년 주거정책을 찾아 지원금을 반영합니다." },
-  { title: "진짜 주거비 확인", body: "실거래가로 계산한 동네 시세에서 지원금을 뺀 실질 월·연 주거비와 동네 순위를 봅니다." },
+  { title: "집 추천·진짜 주거비 확인", body: "실제 계약된 집 중 지원금을 반영해 부담이 가장 적은 집을 추천하고, 실질 월·연 주거비와 동네 순위를 보여 줍니다." },
 ];
 
 export default function Home() {
@@ -31,16 +31,16 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/diagnosis"
+                href="/recommend"
                 className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(37,99,235,0.3)] transition hover:bg-accent/90"
               >
-                내 주거비 진단하기
+                내 조건에 맞는 집 추천받기
               </Link>
               <Link
-                href="/compare"
+                href="/diagnosis"
                 className="rounded-xl border border-border bg-surface px-5 py-3 text-sm font-semibold transition hover:bg-background"
               >
-                동네 비교 보기
+                주거비 진단하기
               </Link>
             </div>
           </div>
