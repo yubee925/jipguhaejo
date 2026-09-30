@@ -79,7 +79,7 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">내 정보</legend>
           <div className="grid grid-cols-2 gap-3">
             <Field label="나이" unit="세">
-              <input type="number" inputMode="numeric" min={0} className={`${inputClass} pr-10`} value={value.age} onChange={(e) => set("age", e.target.value)} />
+              <input type="number" inputMode="numeric" min={0} className={`${inputClass} pr-14`} value={value.age} onChange={(e) => set("age", e.target.value)} />
             </Field>
             <Field label="연 소득" unit="만원">
               <input type="number" inputMode="numeric" min={0} step={100} className={`${inputClass} pr-14`} value={value.annualIncome} onChange={(e) => set("annualIncome", e.target.value)} />
@@ -132,7 +132,7 @@ export default function ConditionForm({ value, onChange, dongMedians, onDongChan
         <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">계산 설정</legend>
           <Field label="보증금 기회비용 연이율" unit="%">
-            <input type="number" inputMode="decimal" min={0} step={0.1} className={`${inputClass} pr-10`} value={value.annualRatePct} onChange={(e) => set("annualRatePct", e.target.value)} />
+            <input type="number" inputMode="decimal" min={0} step={0.1} className={`${inputClass} pr-14`} value={value.annualRatePct} onChange={(e) => set("annualRatePct", e.target.value)} />
           </Field>
         </fieldset>
       </form>
