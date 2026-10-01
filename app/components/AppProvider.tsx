@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { FeatureCollection, Polygon } from "geojson";
-import { toUserInput, type Conditions } from "@/lib/conditions";
+import { DEFAULT_CONDITIONS, toUserInput, type Conditions } from "@/lib/conditions";
 import { compareDongs, diagnoseDong } from "@/lib/diagnose";
 import type { Constants, Policy, RentRecord, UserInput } from "@/lib/types";
 
@@ -36,16 +36,7 @@ const AppContext = createContext<AppState | null>(null);
 /** 사이트 전체에서 데이터와 사용자 조건을 공유한다. 페이지를 옮겨도 조건이 유지된다. */
 export function AppProvider({ data, children }: { data: SiteData; children: ReactNode }) {
   const { rent, policies, k, dongs } = data;
-  const [conditions, setConditions] = useState<Conditions>(() => ({
-    age: "27",
-    monthlyIncome: "150",
-    homeless: true,
-    independent: true,
-    single: true,
-    housingType: "officetel",
-    myDeposit: "1000",
-    dong: dongs[0] ?? "",
-  }));
+  const [conditions, setConditions] = useState<Conditions>(() => ({ ...DEFAULT_CONDITIONS, dong: dongs[0] ?? "" }));
 
   const selectDong = (dong: string) => setConditions((c) => ({ ...c, dong }));
 

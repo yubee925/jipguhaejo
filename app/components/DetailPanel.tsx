@@ -132,6 +132,7 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
   const nextYear = by("next_year");
   const cards = by("card");
   const ineligible = by("ineligible");
+  const na = by("na");
 
   return (
     <section className="flex flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -272,6 +273,9 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
                 </li>
               ))}
             </Bucket>
+          )}
+          {na.length > 0 && (
+            <p className="text-[11px] text-muted">전세 전용이라 월세에는 해당 없음: {na.map((x) => x.policy.name).join(", ")}</p>
           )}
         </div>
 

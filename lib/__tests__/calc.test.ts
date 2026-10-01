@@ -102,7 +102,7 @@ describe("match", () => {
   it("부모 소득·재산·공고 재확인은 안내만", () => {
     const m = matchPolicy(pol({ parent_income_check: "COND", asset_max: 10000, verify_needed: true }), user(), K, listing);
     expect(m.eligible).toBe(true);
-    expect(m.warnings).toEqual(["부모 소득 조건 확인 필요", "재산 10000만 원 이하 조건 확인", "공고 재확인 필요"]);
+    expect(m.warnings).toEqual(["자산 10000만 원 이하 확인 필요", "부모 포함 가구소득(중위 100% 이하) 확인 필요", "공고 재확인 필요"]);
   });
 
   it("exclusive_with 로 묶인 정책은 총 지원액이 큰 1개만", () => {

@@ -38,6 +38,11 @@
 공통 규칙: CSV UTF-8, 영문 컬럼명, 금액 단위 만원(숫자만), 예/아니오 Y/N.
 컬럼의 정확한 의미와 값 목록은 data/columns_guide.csv 가 기준이다. 코드와 이 문서가 다르면 columns_guide.csv 를 따른다.
 
+예나 작성 가이드 (data/guide/, 코드 작성 전 먼저 읽는다)
+- data/guide/guide_policies.md : policies.csv 최종본(12개 정책, 33열) 안내. NONE 의미, 정책 종류별 결과 표시, 매물 조건, 새 열 5개
+- data/guide/guide_input_fields.md : input_fields.csv(입력란 19개) 안내. 특수값 NONE/UNKNOWN, 화면 구성, 입력값 → 정책 열 판정 규칙
+- data/guide/personas.md : 시연 페르소나 A·B·D 와 기대 결과 (persona_expected.csv 와 함께 판정 로직 검증용)
+
 - data/constants.csv : key, name, value, unit, base_date, verify_needed, note, source_url
   - MEDIAN_1P 256.4238 (1인 기준중위소득, 만원/월), MEDIAN_3P, URBAN_1P, URBAN_3P
   - BOK_BASE_RATE 3.00 (%), CONVERSION_RATE 5.00 (%, 기준금리 + 2%p), MARKET_JEONSE_RATE 4.35 (%)

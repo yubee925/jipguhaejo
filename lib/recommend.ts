@@ -113,7 +113,7 @@ export function recommend(
   const items: Recommendation[] = [];
   for (const { latest: l, count } of groups.values()) {
     const converted = convertedRent(l.rent, l.deposit, r);
-    const matches = policies.map((p) => matchPolicy(p, u, k, { deposit: l.deposit, rent: l.rent }));
+    const matches = policies.map((p) => matchPolicy(p, u, k, { deposit: l.deposit, rent: l.rent, area_m2: l.area_m2 }));
     const supports = pickSupports(matches, l.rent, ["confirmed"]);
     const S = sumMonthly(supports);
     const real = Math.max(converted - S, 0);

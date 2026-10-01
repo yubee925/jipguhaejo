@@ -1,0 +1,20 @@
+﻿field_id,label,input_type,options,required,default,used_by_policies,note
+age,나이,number,19~39,Y,NONE,공통,만 나이
+monthly_income,월소득(만원),number,0 이상,Y,NONE,공통,세전. 중위소득%·연소득·도시근로자%로 자동 환산
+marital,혼인 상태,select,SINGLE(미혼)|NEWLYWED(신혼 7년 이내)|MARRIED(기혼),Y,SINGLE,P02 P03 P10 P11 P12,NONE
+job,취업 상태,select,EMPLOYED(재직)|JOBSEEKER(구직·미취업)|STUDENT(대학(원)생)|FREELANCE(프리랜서),Y,EMPLOYED,판정 미사용,AI 맞춤 설명 문구에 사용
+resident,주민등록지,select,GWANGJIN(광진구)|SEOUL_OTHER(서울 타구)|OTHER(서울 외),Y,GWANGJIN,P02 P03 P06 P08,실거주지와 별도
+homeless,무주택,checkbox,Y|N,Y,Y,공통,N이면 전 정책 탈락
+independent,부모와 따로 거주,checkbox,Y|N,Y,Y,P01 P12,NONE
+single_household,1인 가구,checkbox,Y|N,Y,Y,P02 P03,NONE
+house_type,찾는 집,select,OFFICETEL(오피스텔)|VILLA(연립·다세대),Y,OFFICETEL,지도 시세,기존 항목
+dong,지역(동),select,중곡동|능동|구의동|광장동|자양동|화양동|군자동,Y,광장동,지도 시세,기존 항목
+deposit,보유 보증금(만원),number,0 이상,Y,NONE,실질 부담 계산,기존 항목
+house_head,세대주,checkbox,Y|N,N,Y,P04 P05,1인가구 독립이면 보통 Y
+asset,본인 총자산(만원),number,0 이상 또는 UNKNOWN,N,UNKNOWN,P01 P02 P03 P04 P05 P09 P10 P11,asset_max와 비교
+parent_income,부모 포함 가구소득,select,UNDER_100(중위 100% 이하)|OVER_100(초과)|UNKNOWN(모름),N,UNKNOWN,P01 P09 P11,부모 심사 대상일 때만 사용
+basic_benefit_family,기초생활수급 가구(본인 또는 부모),checkbox,Y|N,N,N,P12 P08,P12는 Y 필요 / P08은 Y면 제외
+parent_region,부모 주소지,select,SEOUL(서울)|OTHER_METRO(타 특별·광역시)|OTHER(그 외)|UNKNOWN(모름),N,UNKNOWN,P12,SEOUL이면 P12 탈락
+moved_in_year,서울 전입 시점,select,AFTER_2024(2024.1.1 이후)|BEFORE_2024(이전)|UNKNOWN(모름),N,UNKNOWN,P08,BEFORE_2024면 P08 탈락
+parent_house_rent,부모 소유 집에 세 들어 사는 중,checkbox,Y|N,N,N,P08,Y면 P08 제외
+current_support,이미 받고 있는 지원,multi,YOUTH_ALLOWANCE(서울 청년수당)|P01(국토부 청년월세)|P03(광진형 청년월세)|P12(주거급여)|NONE(없음),N,NONE,중복 판정,선택한 정책의 exclusive_with 정책은 제외. 청년수당이면 P02 제외

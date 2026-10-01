@@ -1,6 +1,6 @@
 // AI 도우미용: diagnoseDong·compareDongs 결과를 해설 문맥으로 묶고, 제한형(템플릿) 답변을 만든다.
 // AI는 숫자를 계산하지 않는다. 여기서 만든 수치만 넘긴다.
-import { HOUSING_TYPE_LABEL } from "./conditions";
+import { HOUSING_TYPE_LABEL, JOB, MARITAL, RESIDENT } from "./conditions";
 import { compareDongs, diagnoseDong } from "./diagnose";
 import { formatManwon } from "./format";
 import { DISTRICT } from "./region";
@@ -100,6 +100,8 @@ function policy(ctx: ExplainContext): string {
     lines.push("", "해당되지 않은 정책:");
     for (const x of no) lines.push(`• ${x.policy.name}: ${x.reasons.join(", ")}`);
   }
+  const na = byBucket(d, "na");
+  if (na.length) lines.push("", `전세 전용이라 해당 없음: ${na.map((x) => x.policy.name).join(", ")}`);
   const warnings = [...new Set(d.matches.filter((x) => x.eligible).flatMap((x) => x.warnings))];
   if (warnings.length) lines.push("", `확인 필요: ${warnings.join(", ")}`);
   return lines.join("\n");
@@ -152,6 +154,8 @@ export function contextToPrompt(ctx: ExplainContext): string {
   return [
     `지역: 서울 ${DISTRICT} ${ctx.dong} / 주택유형: ${typeLabel(u.housingType)} / 보유 보증금: ${formatManwon(u.myDeposit ?? 0)}`,
     `사용자: 만 ${u.age}세, 월소득 ${formatManwon(u.monthlyIncome)}(기준중위소득 ${pct}%), ${u.homeless ? "무주택" : "유주택"}, ${u.independent ? "독립거주" : "부모와 거주"}, ${u.single ? "1인 가구" : "2인 이상 가구"}`,
+    // 취업 상태는 판정에 쓰지 않고 설명 문구 맞춤에만 쓴다 (input_fields.csv)
+    `혼인: ${MARITAL.find((o) => o.value === u.marital)?.label ?? "미혼"} / 취업: ${JOB.find((o) => o.value === u.job)?.label ?? "-"} / 주민등록지: ${RESIDENT.find((o) => o.value === u.resident)?.label ?? "광진구"}`,
     `전월세 전환율: 연 ${ctx.k.CONVERSION_RATE}%`,
     "",
     "[요약]",

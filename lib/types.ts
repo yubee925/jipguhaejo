@@ -46,6 +46,12 @@ export interface Policy {
   verify_needed: boolean;
   source_url: string;
   notes: string;
+  // 2026-10 최종본에서 추가된 열 (data/guide/guide_policies.md). 없으면 제한 없음
+  area_max_m2?: number | null;
+  marriage_req?: "ANY" | "SINGLE" | "SINGLE_OR_NEWLYWED";
+  job_req?: string;
+  head_req?: boolean;
+  special_req?: "NONE" | "BASIC_BENEFIT_FAMILY";
 }
 
 export interface Constants {
@@ -63,7 +69,18 @@ export interface UserInput {
   single: boolean;
   housingType: HousingType;
   myDeposit?: number; // 만원
-  residence?: { seoul: boolean; gwangjin: boolean }; // 기본: 광진구 거주로 가정
+  // 아래는 data/input_fields.csv 기준. 없으면 input_fields.csv 의 기본값으로 본다
+  marital?: "SINGLE" | "NEWLYWED" | "MARRIED"; // 기본 SINGLE
+  job?: "EMPLOYED" | "JOBSEEKER" | "STUDENT" | "FREELANCE"; // 판정 미사용 (AI 설명용)
+  resident?: "GWANGJIN" | "SEOUL_OTHER" | "OTHER"; // 주민등록지, 기본 GWANGJIN
+  houseHead?: boolean; // 세대주, 기본 Y
+  asset?: number | null; // 본인 총자산(만원), null = 모름
+  parentIncome?: "UNDER_100" | "OVER_100" | "UNKNOWN";
+  basicBenefitFamily?: boolean; // 기초생활수급 가구(본인 또는 부모)
+  parentRegion?: "SEOUL" | "OTHER_METRO" | "OTHER" | "UNKNOWN";
+  movedInYear?: "AFTER_2024" | "BEFORE_2024" | "UNKNOWN";
+  parentHouseRent?: boolean; // 부모 소유 집에 세 들어 사는 중
+  currentSupport?: string[]; // 이미 받는 지원 (YOUTH_ALLOWANCE, P01, P03, P12)
 }
 
 export interface MatchResult {
@@ -71,5 +88,6 @@ export interface MatchResult {
   eligible: boolean;
   reasons: string[]; // 불충족 사유
   warnings: string[]; // 확인 필요 안내
-  bucket: "confirmed" | "lottery" | "next_year" | "card" | "ineligible";
+  /** na: 전세 전용 정책이라 월세 서비스에서 해당 없음 */
+  bucket: "confirmed" | "lottery" | "next_year" | "card" | "ineligible" | "na";
 }

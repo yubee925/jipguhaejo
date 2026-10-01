@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Papa from "papaparse";
+import { INDEPENDENT_POLICY_IDS, LOTTERY_POLICY_IDS } from "./policyRules";
 import type { Constants, Policy, RentRecord, CategoryCode, IncomeType } from "./types";
 
 const DATA = path.join(process.cwd(), "data");
@@ -12,8 +13,16 @@ function readCsv(file: string): Record<string, string>[] {
   return out.data;
 }
 
-const num = (v: string | undefined): number | null =>
-  v == null || v.trim() === "" ? null : Number(v.replace(/,/g, ""));
+/** 빈칸·NONE(해당 없음/제한 없음)은 null. 숫자로 변환하지 않는다 */
+const num = (v: string | undefined): number | null => {
+  const t = (v ?? "").trim();
+  return t === "" || t.toUpperCase() === "NONE" ? null : Number(t.replace(/,/g, ""));
+};
+/** NONE 은 빈 문자열로 */
+const str = (v: string | undefined) => {
+  const t = (v ?? "").trim();
+  return t.toUpperCase() === "NONE" ? "" : t;
+};
 const yn = (v: string | undefined) => (v ?? "").trim().toUpperCase() === "Y";
 
 export function loadConstants(): Constants {
@@ -46,39 +55,50 @@ export function loadRent(): RentRecord[] {
     .filter((x) => Number.isFinite(x.deposit) && Number.isFinite(x.rent));
 }
 
+// 열 이름은 2026-10 최종본(data/guide/guide_policies.md) 기준, 예전 이름도 읽는다
 export function loadPolicies(): Policy[] {
-  return readCsv("policies.csv").map((x) => ({
-    policy_id: x.policy_id,
-    name: x.name ?? x.policy_name ?? "",
-    agency: x.agency ?? "",
-    level: x.level ?? "",
-    min_age: num(x.min_age ?? x.age_min),
-    max_age: num(x.max_age ?? x.age_max),
-    residence: (x.residence ?? "none").trim() || "none",
-    homeless_required: yn(x.homeless_required),
-    independent_required: yn(x.independent_required),
-    category_code: (x.category_code ?? "RENT").trim() as CategoryCode,
-    income_type: ((x.income_type ?? "").trim() as IncomeType) || "",
-    income_min: num(x.income_min),
-    income_max: num(x.income_max),
-    single_only: yn(x.single_only),
-    asset_max: num(x.asset_max),
-    parent_income_check: ((x.parent_income_check ?? "N").trim() || "N") as Policy["parent_income_check"],
-    housing_type: ((x.housing_type ?? "NA").trim() || "NA") as Policy["housing_type"],
-    deposit_max: num(x.deposit_max),
-    rent_max: num(x.rent_max),
-    benefit_monthly: num(x.benefit_monthly),
-    benefit_months: num(x.benefit_months),
-    benefit_lump: num(x.benefit_lump),
-    loan_limit: num(x.loan_limit),
-    loan_rate: num(x.loan_rate),
-    exclusive_with: (x.exclusive_with ?? "").split("|").map((s) => s.trim()).filter(Boolean),
-    apply_open: yn(x.apply_open),
-    lottery: yn(x.lottery),
-    verify_needed: yn(x.verify_needed),
-    source_url: x.source_url ?? "",
-    notes: x.notes ?? "",
-  }));
+  return readCsv("policies.csv").map((x) => {
+    const id = x.policy_id.trim();
+    const residentReq = str(x.resident_req ?? x.residence).toLowerCase();
+    return {
+      policy_id: id,
+      name: x.name ?? x.policy_name ?? "",
+      agency: str(x.agency ?? x.portal),
+      level: str(x.level ?? x.region),
+      min_age: num(x.age_min ?? x.min_age),
+      max_age: num(x.age_max ?? x.max_age),
+      residence: residentReq || "none",
+      // 무주택은 전 정책 공통 조건 (guide_input_fields.md)
+      homeless_required: x.homeless_required == null ? true : yn(x.homeless_required),
+      independent_required: x.independent_required == null ? INDEPENDENT_POLICY_IDS.includes(id) : yn(x.independent_required),
+      category_code: (str(x.category_code) || "RENT") as CategoryCode,
+      income_type: (str(x.income_type) as IncomeType) || "",
+      income_min: num(x.income_min),
+      income_max: num(x.income_max),
+      single_only: yn(x.single_only),
+      asset_max: num(x.asset_max),
+      parent_income_check: (str(x.parent_income_check) || "N") as Policy["parent_income_check"],
+      housing_type: (str(x.housing_type) || "NA") as Policy["housing_type"],
+      deposit_max: num(x.deposit_max),
+      rent_max: num(x.rent_max),
+      area_max_m2: num(x.area_max_m2),
+      benefit_monthly: num(x.benefit_monthly),
+      benefit_months: num(x.benefit_months),
+      benefit_lump: num(x.benefit_lump),
+      loan_limit: num(x.loan_limit),
+      loan_rate: num(x.loan_rate),
+      exclusive_with: str(x.exclusive_with).split("|").map((s) => s.trim()).filter(Boolean),
+      apply_open: yn(x.apply_open),
+      lottery: yn(x.lottery) || LOTTERY_POLICY_IDS.includes(id),
+      verify_needed: yn(x.verify_needed),
+      source_url: str(x.source_url),
+      notes: str(x.notes ?? x.note),
+      marriage_req: (str(x.marriage_req) || "ANY") as Policy["marriage_req"],
+      job_req: str(x.job_req) || "ANY",
+      head_req: yn(x.head_req),
+      special_req: (str(x.special_req) || "NONE") as Policy["special_req"],
+    };
+  });
 }
 
 /** 데이터에 있는 동 목록 (코드에 하드코딩하지 않음) */

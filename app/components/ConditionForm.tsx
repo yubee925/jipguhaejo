@@ -1,7 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { HOUSING_TYPE_LABEL, type Conditions } from "@/lib/conditions";
+import {
+  CURRENT_SUPPORT,
+  HOUSING_TYPE_LABEL,
+  JOB,
+  MARITAL,
+  MOVED_IN,
+  PARENT_INCOME,
+  PARENT_REGION,
+  RESIDENT,
+  type Conditions,
+} from "@/lib/conditions";
 import { DISTRICT } from "@/lib/region";
 import type { HousingType } from "@/lib/types";
 import Card from "./Card";
@@ -72,6 +82,18 @@ function Check({ checked, onChange, children }: { checked: boolean; onChange: (v
   );
 }
 
+function Select<T extends string>({ options, value, onChange }: { options: readonly { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <select className={inputClass} value={value} onChange={(e) => onChange(e.target.value as T)}>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 const HOUSING_TYPES = (Object.keys(HOUSING_TYPE_LABEL) as HousingType[]).map((v) => ({ value: v, label: HOUSING_TYPE_LABEL[v] }));
 
 export default function ConditionForm({ value, onChange, dongs, medianIncome }: Props) {
@@ -90,6 +112,17 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
             </Field>
             <Field label="월소득" unit="만원" hint={pct !== null ? `기준중위소득의 ${pct}%` : "세전 월 소득"}>
               <input type="number" inputMode="numeric" min={0} step={10} className={`${inputClass} pr-14`} value={value.monthlyIncome} onChange={(e) => set("monthlyIncome", e.target.value)} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="혼인 상태">
+              <Select options={MARITAL} value={value.marital} onChange={(v) => set("marital", v)} />
+            </Field>
+            <Field label="취업 상태">
+              <Select options={JOB} value={value.job} onChange={(v) => set("job", v)} />
+            </Field>
+            <Field label="주민등록지">
+              <Select options={RESIDENT} value={value.resident} onChange={(v) => set("resident", v)} />
             </Field>
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
@@ -122,6 +155,66 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
           </div>
           <p className="text-[11px] leading-relaxed text-muted">전용 40㎡ 이하 월세 실거래(신규 계약)의 중앙값으로 동네 시세를 계산합니다.</p>
         </fieldset>
+
+        <details className="group border-t border-border pt-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted">
+            더 정확하게 (선택)
+            <span className="text-xs normal-case tracking-normal transition group-open:rotate-180">▾</span>
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">
+            <p className="text-[11px] leading-relaxed text-muted">모르면 비워 두세요. 탈락이 아니라 &ldquo;확인 필요&rdquo;로 표시합니다.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="본인 총자산" unit="만원">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={100}
+                  placeholder="모름"
+                  className={`${inputClass} pr-14`}
+                  value={value.asset}
+                  onChange={(e) => set("asset", e.target.value)}
+                />
+              </Field>
+              <Field label="부모 포함 가구소득">
+                <Select options={PARENT_INCOME} value={value.parentIncome} onChange={(v) => set("parentIncome", v)} />
+              </Field>
+              <Field label="부모 주소지">
+                <Select options={PARENT_REGION} value={value.parentRegion} onChange={(v) => set("parentRegion", v)} />
+              </Field>
+              <Field label="서울 전입 시점">
+                <Select options={MOVED_IN} value={value.movedInYear} onChange={(v) => set("movedInYear", v)} />
+              </Field>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Check checked={value.houseHead} onChange={(v) => set("houseHead", v)}>
+                세대주
+              </Check>
+              <Check checked={value.basicBenefitFamily} onChange={(v) => set("basicBenefitFamily", v)}>
+                기초생활수급 가구 (본인 또는 부모)
+              </Check>
+              <Check checked={value.parentHouseRent} onChange={(v) => set("parentHouseRent", v)}>
+                부모 소유 집에 세 들어 사는 중
+              </Check>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted">이미 받고 있는 지원</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {CURRENT_SUPPORT.map((o) => (
+                  <Check
+                    key={o.value}
+                    checked={value.currentSupport.includes(o.value)}
+                    onChange={(on) =>
+                      set("currentSupport", on ? [...value.currentSupport, o.value] : value.currentSupport.filter((x) => x !== o.value))
+                    }
+                  >
+                    {o.label}
+                  </Check>
+                ))}
+              </div>
+            </div>
+          </div>
+        </details>
       </form>
     </Card>
   );
