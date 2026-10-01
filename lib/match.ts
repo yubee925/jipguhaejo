@@ -1,6 +1,7 @@
 // 정책 매칭 + 지원금 합산 (순수 함수). CLAUDE.md "소득 판정", "category_code 별 화면 처리" 기준.
 import type { Constants, MatchResult, Policy, UserInput } from "./types";
 import { recognizedSupport, type MonthlySupport } from "./calc";
+import { amountMaxText, incomeText } from "./policyText";
 import { EXTRA_RULES, PARENT_INCOME_NEEDED, SUPPORT_EXCLUSIVE } from "./policyRules";
 
 export function incomeOk(p: Policy, u: UserInput, k: Constants): boolean {
@@ -50,17 +51,18 @@ export function matchPolicy(
     reasons.push("1인 가구 미혼 또는 신혼부부");
   if (p.head_req && u.houseHead === false) reasons.push("세대주");
   if (p.special_req === "BASIC_BENEFIT_FAMILY" && !u.basicBenefitFamily) reasons.push("기초생활수급 가구");
-  if (!incomeOk(p, u, k)) reasons.push("소득 기준 초과");
+  if (!incomeOk(p, u, k)) reasons.push(`소득 기준(${incomeText(p)})`);
   if (p.deposit_max != null && listing.deposit > p.deposit_max)
-    reasons.push(`보증금 ${p.deposit_max}만 원 이하 매물`);
-  if (p.rent_max != null && listing.rent > p.rent_max) reasons.push(`월세 ${p.rent_max}만 원 이하 매물`);
+    reasons.push(`${amountMaxText("보증금", p.deposit_max)} 매물`);
+  if (p.rent_max != null && listing.rent > p.rent_max) reasons.push(`${amountMaxText("월세", p.rent_max)} 매물`);
   if (p.area_max_m2 != null && listing.area_m2 != null && listing.area_m2 > p.area_max_m2)
     reasons.push(`전용 ${p.area_max_m2}㎡ 이하 매물`);
 
   // 자산: 모르면 확인 필요
   if (p.asset_max != null) {
-    if (u.asset == null) warnings.push(`자산 ${p.asset_max}만 원 이하 확인 필요`);
-    else if (u.asset > p.asset_max) reasons.push(`자산 ${p.asset_max}만 원 이하`);
+    const asset = amountMaxText("자산", p.asset_max);
+    if (u.asset == null) warnings.push(`${asset} 확인 필요`);
+    else if (u.asset > p.asset_max) reasons.push(asset!);
   }
 
   // 부모 포함 가구소득

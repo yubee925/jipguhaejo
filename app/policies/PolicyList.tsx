@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { formatManwon } from "@/lib/format";
+import { conditionParts } from "@/lib/policyText";
 import type { CategoryCode, MatchResult, Policy } from "@/lib/types";
 import { useApp } from "../components/AppProvider";
 
@@ -22,9 +23,6 @@ const BUCKET: Record<MatchResult["bucket"], { label: string; tone: string }> = {
   ineligible: { label: "해당 안 됨", tone: "bg-background text-muted" },
   na: { label: "전세 전용", tone: "bg-background text-muted" },
 };
-const MARRIAGE: Record<string, string> = { SINGLE: "미혼", SINGLE_OR_NEWLYWED: "1인 가구 미혼 또는 신혼부부" };
-const RESIDENT: Record<string, string> = { seoul: "서울 주민등록", gwangjin: "광진구 주민등록" };
-const INCOME_BASE: Record<string, string> = { MEDIAN_PCT: "기준중위소득", URBAN_PCT: "도시근로자 월평균소득", ANNUAL: "연소득" };
 
 function supportText(p: Policy) {
   const parts: string[] = [];
@@ -36,26 +34,7 @@ function supportText(p: Policy) {
 }
 
 function conditionText(p: Policy) {
-  const parts: string[] = [];
-  if (p.min_age != null || p.max_age != null) parts.push(`만 ${p.min_age ?? ""}~${p.max_age ?? ""}세`);
-  if (p.income_type) {
-    const unit = p.income_type === "ANNUAL" ? "만원" : "%";
-    const range = [p.income_min != null ? `${p.income_min}${unit} 이상` : "", p.income_max != null ? `${p.income_max}${unit} 이하` : ""].filter(Boolean).join(" ");
-    parts.push(`${INCOME_BASE[p.income_type]} ${range}`);
-  }
-  if (p.homeless_required) parts.push("무주택");
-  if (p.independent_required) parts.push("독립 거주");
-  if (p.single_only) parts.push("1인 가구");
-  if (p.marriage_req && MARRIAGE[p.marriage_req]) parts.push(MARRIAGE[p.marriage_req]);
-  if (RESIDENT[p.residence]) parts.push(RESIDENT[p.residence]);
-  if (p.head_req) parts.push("세대주");
-  if (p.special_req === "BASIC_BENEFIT_FAMILY") parts.push("기초생활수급 가구");
-  if (p.asset_max != null) parts.push(`자산 ${formatManwon(p.asset_max)} 이하`);
-  if (p.housing_type === "JEONSE") parts.push("전세 전용");
-  if (p.deposit_max != null) parts.push(`보증금 ${formatManwon(p.deposit_max)} 이하`);
-  if (p.rent_max != null) parts.push(`월세 ${formatManwon(p.rent_max)} 이하`);
-  if (p.area_max_m2 != null) parts.push(`전용 ${p.area_max_m2}㎡ 이하`);
-  return parts.join(" · ") || "조건 없음";
+  return conditionParts(p).join(" · ");
 }
 
 export default function PolicyList() {
