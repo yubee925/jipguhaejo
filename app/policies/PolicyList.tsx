@@ -104,7 +104,10 @@ export default function PolicyList() {
                 {p.notes && <span className="text-muted">{p.notes}</span>}
               </div>
 
-              <PolicyApplyLink p={p} />
+              {/* 같은 줄 카드끼리 버튼 높이를 맞추도록 카드 맨 아래에 붙인다 */}
+              <div className="mt-auto">
+                <PolicyApplyLink p={p} />
+              </div>
             </li>
           );
         })}
