@@ -38,7 +38,7 @@ export default function CompareView() {
         <section className="rounded-xl bg-deep px-5 py-5 text-white">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Bottom line</p>
           <p className="mt-2 break-keep text-xl font-bold leading-snug sm:text-2xl">
-            같은 조건이어도 {low.dong}과 {high.dong}은 월 {won1(gap)}, 1년이면 {won1(gap * 12)} 차이나요
+            같은 조건이어도 {low.dong}과 {high.dong}은 월 {won1(gap)}, 1년이면 약 {Math.round(gap * 12).toLocaleString("ko-KR")}만원 차이나요
           </p>
           <p className="mt-2 text-xs text-white/70">
             실질 월 주거비 {low.dong} {won1(low.real)} · {high.dong} {won1(high.real)}
