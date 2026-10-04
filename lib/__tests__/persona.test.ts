@@ -7,13 +7,13 @@ import { describe, expect, it } from "vitest";
 import { toUserInput } from "../conditions";
 import { loadConstants, loadPolicies } from "../data";
 import { matchPolicy } from "../match";
-import { PERSONA_B2, PERSONAS, applyPersona, matchingPersona } from "../personas";
+import { PERSONA_B2, PERSONAS, applyPersona } from "../personas";
 import type { MatchResult, UserInput } from "../types";
 
 const policies = loadPolicies();
 const K = loadConstants();
 
-// 화면의 시연 버튼과 같은 조건 (lib/personas.ts). 매물은 월세 60·보증금 1000 기준
+// 페르소나 조건은 lib/personas.ts. 매물은 월세 60·보증금 1000 기준
 const listing = { deposit: 1000, rent: 60 };
 const PERSONA_INPUT: Record<string, UserInput> = Object.fromEntries(
   [...PERSONAS, PERSONA_B2].map((p) => [p.id, toUserInput(applyPersona(p, { dong: "화양동", housingType: "officetel" }))]),
@@ -42,11 +42,8 @@ describe("시연 페르소나 정답표", () => {
   }
 });
 
-describe("시연 버튼", () => {
-  it("적용한 조건을 다시 그 페르소나로 알아본다", () => {
-    for (const p of [...PERSONAS, PERSONA_B2]) expect(matchingPersona(applyPersona(p, { dong: "능동", housingType: "villa" }))).toBe(p.id);
-  });
-  it("정답표에 있는 페르소나를 모두 시연할 수 있다", () => {
+describe("페르소나 목록", () => {
+  it("정답표에 있는 페르소나를 모두 정의했다", () => {
     expect([...new Set(expected.map((r) => r.persona))].sort()).toEqual(Object.keys(PERSONA_INPUT).sort());
   });
 });
