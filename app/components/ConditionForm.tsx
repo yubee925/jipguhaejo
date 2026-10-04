@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   CURRENT_SUPPORT,
   HOUSING_TYPE_LABEL,
@@ -13,6 +13,7 @@ import {
   missingRequired,
   type Conditions,
 } from "@/lib/conditions";
+import { PERSONAS, applyPersona, matchingPersona } from "@/lib/personas";
 import { DISTRICT } from "@/lib/region";
 import type { HousingType } from "@/lib/types";
 import Card from "./Card";
@@ -103,11 +104,46 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
   const pct = Number.isFinite(income) && income > 0 ? Math.round((income / medianIncome) * 100) : null;
   const missing = missingRequired(value);
   const needInput = <span className="font-medium text-[#D0654F]">입력해 주세요 (빈칸은 0으로 계산하지 않아요)</span>;
+  const [moreOpen, setMoreOpen] = useState(false);
+  const active = matchingPersona(value);
 
   return (
     <Card title="내 조건 입력" subtitle="바꾸면 결과가 바로 바뀌어요" className="flex-1">
       <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
-        <fieldset className="flex flex-col gap-3">
+        {/* 발표 시연용: 누르면 그 사람의 조건이 한 번에 채워진다 (data/guide/personas.md) */}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">시연 페르소나</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {PERSONAS.map((p) => {
+              const on = active === p.id || (p.id === "B" && active === "B2");
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={on}
+                  title={p.summary}
+                  onClick={() => {
+                    onChange(applyPersona(p, value));
+                    if (p.usesOptional) setMoreOpen(true);
+                  }}
+                  className={`flex flex-col items-start rounded-lg border px-2.5 py-2 text-left transition ${
+                    on ? "border-accent bg-accent-soft" : "border-border hover:bg-background"
+                  }`}
+                >
+                  <span className={`text-xs font-semibold ${on ? "text-accent" : ""}`}>{p.label}</span>
+                  <span className="text-[10px] leading-snug text-muted">{p.summary}</span>
+                </button>
+              );
+            })}
+          </div>
+          {(active === "B" || active === "B2") && (
+            <p className="text-[11px] text-muted">
+              시연 포인트: &ldquo;더 정확하게&rdquo;의 <b>부모 주소지</b>를 &ldquo;서울&rdquo;로 바꾸면 주거급여(P12)가 탈락해요.
+            </p>
+          )}
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">내 정보</legend>
           <div className="grid grid-cols-2 gap-3">
             <Field label="나이" unit="세" hint={missing.includes("나이") ? needInput : undefined}>
@@ -159,7 +195,11 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
           <p className="text-[11px] leading-relaxed text-muted">전용 40㎡ 이하 월세 실거래(신규 계약)의 중앙값으로 동네 시세를 계산합니다.</p>
         </fieldset>
 
-        <details className="group border-t border-border pt-4">
+        <details
+          className="group border-t border-border pt-4"
+          open={moreOpen}
+          onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}
+        >
           <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted">
             더 정확하게 (선택)
             <span className="text-xs normal-case tracking-normal transition group-open:rotate-180">▾</span>
