@@ -1,6 +1,7 @@
 // 정책 조건 표시 문구 (순수 함수). 정책 카드·탈락 사유·AI 해설이 모두 이 함수를 쓴다.
 import { formatManwon } from "./format";
-import type { Policy } from "./types";
+import { isRentSumWarning } from "./policyRules";
+import type { MatchResult, Policy } from "./types";
 
 /**
  * 하한·상한 → "○○ 이하" / "○○ 이상" / "○○~○○". 둘 다 없으면 null.
@@ -62,4 +63,17 @@ export function conditionParts(p: Policy): string[] {
   ])
     if (t) parts.push(t);
   return parts;
+}
+
+/**
+ * 월세 지원(RENT·BENEFIT) 정책을 지금 바로 받지 못하는 이유 한 줄. matchPolicy 결과(bucket·reasons·warnings)를 그대로 쓴다.
+ * 확정 지원이거나 월세 서비스 해당 없음(na)이면 null.
+ */
+export function supportMissText(m: MatchResult): string | null {
+  const monthly = m.policy.benefit_monthly != null ? `월 ${formatManwon(m.policy.benefit_monthly)}` : null;
+  if (m.bucket === "next_year") return `올해 접수 마감 → 내년 신청하면 ${monthly ?? "지원"}`;
+  if (m.bucket === "lottery") return `추첨 선정 → 선정되면 ${monthly ?? "지원"}`;
+  if (m.bucket !== "ineligible") return null;
+  const extra = m.warnings.filter(isRentSumWarning);
+  return `조건 미충족: ${m.reasons.join(", ")}${extra.length ? ` (단, ${extra.join(", ")})` : ""}`;
 }

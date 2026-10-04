@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { formatManwon } from "@/lib/format";
+import { isRentSumWarning } from "@/lib/policyRules";
 import { conditionParts } from "@/lib/policyText";
 import type { CategoryCode, MatchResult, Policy } from "@/lib/types";
 import { useApp } from "../components/AppProvider";
@@ -91,7 +92,12 @@ export default function PolicyList() {
               </dl>
 
               <div className="flex flex-col gap-1 text-xs">
-                {m && !m.eligible && <span className="text-muted">탈락 사유: {m.reasons.join(", ")}</span>}
+                {m && !m.eligible && (
+                  <span className="text-muted">
+                    탈락 사유: {m.reasons.join(", ")}
+                    {m.warnings.some(isRentSumWarning) && ` / 단, ${m.warnings.filter(isRentSumWarning).join(", ")}`}
+                  </span>
+                )}
                 {m && m.eligible && m.warnings.filter((w) => w !== "공고 재확인 필요").length > 0 && (
                   <span className="text-amber-700">확인 필요: {m.warnings.filter((w) => w !== "공고 재확인 필요").join(", ")}</span>
                 )}

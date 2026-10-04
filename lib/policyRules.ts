@@ -25,6 +25,12 @@ export const PARENT_INCOME_NEEDED: Record<string, (u: UserInput, k: Constants) =
   P11: (u) => u.monthlyIncome === 0,
 };
 
+/** 환산 합계 예외 안내 문구 (화면·AI 해설이 이 문구로 경고를 구분한다) */
+const RENT_SUM_PREFIX = "보증금·월세 환산 합계";
+export const rentSumWarning = (sumMax: number) => `${RENT_SUM_PREFIX} ${sumMax}만원 이하인지 확인 필요`;
+/** 탈락한 정책이라도 보여줄 경고인지 (월세 상한 초과 매물의 환산 합계 예외) */
+export const isRentSumWarning = (w: string) => w.startsWith(RENT_SUM_PREFIX);
+
 export interface RuleCheck {
   reasons: string[];
   warnings: string[];
@@ -46,7 +52,7 @@ function rentSumException(
   const total = Math.floor(Math.round((listing.rent + converted) * 10) / 10);
   const warnings =
     listing.rent > o.rentMax && depositOk && total <= o.sumMax
-      ? [`보증금·월세 환산 합계 ${o.sumMax}만원 이하인지 확인 필요`]
+      ? [rentSumWarning(o.sumMax)]
       : [];
   return { reasons: [], warnings };
 }

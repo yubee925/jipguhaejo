@@ -3,6 +3,7 @@
 import { HOUSING_TYPE_LABEL, JOB, MARITAL, RESIDENT } from "./conditions";
 import { compareDongs, diagnoseDong } from "./diagnose";
 import { formatManwon } from "./format";
+import { isRentSumWarning } from "./policyRules";
 import { DISTRICT } from "./region";
 import type { Constants, HousingType, MatchResult, Policy, RentRecord, UserInput } from "./types";
 
@@ -102,7 +103,13 @@ function policy(ctx: ExplainContext): string {
   }
   const na = byBucket(d, "na");
   if (na.length) lines.push("", `전세 전용이라 해당 없음: ${na.map((x) => x.policy.name).join(", ")}`);
-  const warnings = [...new Set(d.matches.filter((x) => x.eligible).flatMap((x) => x.warnings))];
+  const warnings = [
+    ...new Set([
+      ...d.matches.filter((x) => x.eligible).flatMap((x) => x.warnings),
+      // 탈락했어도 환산 합계 예외로 신청 가능할 수 있는 정책
+      ...d.matches.filter((x) => !x.eligible).flatMap((x) => x.warnings.filter(isRentSumWarning).map((w) => `${x.policy.name} ${w}`)),
+    ]),
+  ];
   if (warnings.length) lines.push("", `확인 필요: ${warnings.join(", ")}`);
   return lines.join("\n");
 }

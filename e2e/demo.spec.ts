@@ -13,6 +13,13 @@ test("진단: 기본 조건에서 정책 적용 전·후 금액과 정책 카드
   await expect(page.getByRole("link", { name: /신청·공고 보기/ }).first()).toBeVisible();
 });
 
+test("진단: 기본 조건에서 지원 0원이면 정책별로 못 받는 이유가 보인다", async ({ page }) => {
+  await page.goto("/diagnosis");
+  const reasons = page.getByRole("list", { name: "월세 지원을 받지 못하는 이유" });
+  await expect(reasons).toBeVisible();
+  await expect(reasons).toContainText("접수 마감");
+});
+
 test("진단: 나이를 비우면 입력 안내가 보인다", async ({ page }) => {
   await page.goto("/diagnosis");
   const age = page.getByRole("spinbutton", { name: /나이/ });

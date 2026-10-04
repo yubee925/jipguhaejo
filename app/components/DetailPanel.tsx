@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { formatManwon } from "@/lib/format";
+import { supportMissText } from "@/lib/policyText";
 import type { CategoryCode, MatchResult, Policy } from "@/lib/types";
 import AnimatedNumber from "./AnimatedNumber";
 import type { Diagnosis } from "./AppProvider";
@@ -121,6 +122,11 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
   const lottery = by("lottery");
   const nextYear = by("next_year");
   const cards = by("card");
+  // 지원 0원일 때 월세 지원 정책별로 못 받는 이유
+  const missed = d.matches
+    .filter((x) => x.policy.category_code === "RENT" || x.policy.category_code === "BENEFIT")
+    .map((x) => ({ name: x.policy.name, text: supportMissText(x) }))
+    .filter((x): x is { name: string; text: string } => x.text != null);
 
   return (
     <section className="flex flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -153,7 +159,18 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
                 정책 지원으로 월 <AnimatedNumber value={d.S} format={m1} className="font-semibold" /> 절감 (절감률 {Math.round(d.savingRate)}%)
               </p>
             ) : (
-              <p className="-mt-3 text-xs text-muted">지금 바로 반영되는 월세 지원은 없습니다.</p>
+              <div className="-mt-3 flex flex-col gap-1">
+                <p className="text-xs text-muted">지금 바로 반영되는 월세 지원은 없습니다.</p>
+                {missed.length > 0 && (
+                  <ul aria-label="월세 지원을 받지 못하는 이유" className="flex flex-col gap-0.5 text-[11px] leading-relaxed text-muted">
+                    {missed.map((x) => (
+                      <li key={x.name} className="break-keep">
+                        · <span className="font-medium">{x.name}</span>: {x.text}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
 
             {/* 환산 비용과 실제 현금 지출 구분 (교수님 리뷰 1-4-2) */}
