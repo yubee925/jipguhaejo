@@ -125,7 +125,7 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
   // 지원 0원일 때 월세 지원 정책별로 못 받는 이유
   const missed = d.matches
     .filter((x) => x.policy.category_code === "RENT" || x.policy.category_code === "BENEFIT")
-    .map((x) => ({ name: x.policy.name, text: supportMissText(x) }))
+    .map((x) => ({ name: x.policy.name, text: supportMissText(x, d.listing) }))
     .filter((x): x is { name: string; text: string } => x.text != null);
 
   return (

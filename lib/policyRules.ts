@@ -30,6 +30,12 @@ const RENT_SUM_PREFIX = "보증금·월세 환산 합계";
 export const rentSumWarning = (sumMax: number) => `${RENT_SUM_PREFIX} ${sumMax}만원 이하인지 확인 필요`;
 /** 탈락한 정책이라도 보여줄 경고인지 (월세 상한 초과 매물의 환산 합계 예외) */
 export const isRentSumWarning = (w: string) => w.startsWith(RENT_SUM_PREFIX);
+/** 환산 합계 경고에서 상한(만원)을 읽는다. 다른 경고면 null */
+export const rentSumMaxOf = (w: string): number | null => {
+  if (!isRentSumWarning(w)) return null;
+  const n = Number(w.slice(RENT_SUM_PREFIX.length).match(/(\d+(?:\.\d+)?)만원/)?.[1]);
+  return Number.isFinite(n) ? n : null;
+};
 
 export interface RuleCheck {
   reasons: string[];

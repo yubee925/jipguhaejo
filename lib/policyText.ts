@@ -1,6 +1,6 @@
 // 정책 조건 표시 문구 (순수 함수). 정책 카드·탈락 사유·AI 해설이 모두 이 함수를 쓴다.
 import { formatManwon } from "./format";
-import { isRentSumWarning } from "./policyRules";
+import { rentSumMaxOf } from "./policyRules";
 import type { MatchResult, Policy } from "./types";
 
 /**
@@ -67,13 +67,30 @@ export function conditionParts(p: Policy): string[] {
 
 /**
  * 월세 지원(RENT·BENEFIT) 정책을 지금 바로 받지 못하는 이유 한 줄. matchPolicy 결과(bucket·reasons·warnings)를 그대로 쓴다.
- * 확정 지원이거나 월세 서비스 해당 없음(na)이면 null.
+ * - 매물 조건 탈락("… 매물"): "월세 60만원 이하만 가능 (이 동 대표 매물 월세 64.5만원)"
+ * - 그 밖의 탈락: "대상 아님: 기초생활수급 가구, …"
+ * - 환산 합계 예외: "(단, 보증금·월세 환산 합계 90만원 이하면 신청 가능할 수 있어요)"
+ * listing 은 진단에 쓴 대표 매물. 확정 지원이거나 월세 서비스 해당 없음(na)이면 null.
  */
-export function supportMissText(m: MatchResult): string | null {
+export function supportMissText(m: MatchResult, listing?: { rent: number; deposit: number }): string | null {
   const monthly = m.policy.benefit_monthly != null ? `월 ${formatManwon(m.policy.benefit_monthly)}` : null;
   if (m.bucket === "next_year") return `올해 접수 마감 → 내년 신청하면 ${monthly ?? "지원"}`;
   if (m.bucket === "lottery") return `추첨 선정 → 선정되면 ${monthly ?? "지원"}`;
   if (m.bucket !== "ineligible") return null;
-  const extra = m.warnings.filter(isRentSumWarning);
-  return `조건 미충족: ${m.reasons.join(", ")}${extra.length ? ` (단, ${extra.join(", ")})` : ""}`;
+
+  const isListing = (r: string) => r.endsWith(" 매물");
+  const other = m.reasons.filter((r) => !isListing(r));
+  const byListing = m.reasons.filter(isListing);
+  const parts: string[] = [];
+  if (other.length) parts.push(`대상 아님: ${other.join(", ")}`);
+  if (byListing.length) {
+    const shown: string[] = [];
+    if (listing && byListing.some((r) => r.startsWith("월세"))) shown.push(`월세 ${formatManwon(listing.rent, 1)}`);
+    if (listing && byListing.some((r) => r.startsWith("보증금"))) shown.push(`보증금 ${formatManwon(listing.deposit)}`);
+    const only = byListing.map((r) => r.slice(0, -" 매물".length)).join(", ");
+    parts.push(`${only}만 가능${shown.length ? ` (이 동 대표 매물 ${shown.join(" · ")})` : ""}`);
+  }
+  const sums = m.warnings.map(rentSumMaxOf).filter((n): n is number => n != null);
+  const extra = sums.length ? ` (단, 보증금·월세 환산 합계 ${sums.map((n) => `${n}만원`).join("·")} 이하면 신청 가능할 수 있어요)` : "";
+  return `${parts.join(" · ")}${extra}`;
 }
