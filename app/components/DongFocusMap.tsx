@@ -4,10 +4,12 @@ import "leaflet/dist/leaflet.css";
 import type { FeatureCollection, Polygon } from "geojson";
 import L, { type Path, type PathOptions } from "leaflet";
 import { useEffect, useMemo, useRef } from "react";
-import { GeoJSON, MapContainer, Polygon as LeafletPolygon, TileLayer, useMap } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, Pane, Polygon as LeafletPolygon, TileLayer, Tooltip, useMap } from "react-leaflet";
+import type { BuildingPoint } from "@/lib/buildingPoints";
 import { formatManwon } from "@/lib/format";
 import type { DongFeatureProps } from "./AppProvider";
 import { boundsOf, outsideMask } from "./DongMap";
+import { POINT_CHEAP, POINT_PRICEY } from "./statusColors";
 
 type Props = {
   geojson: FeatureCollection<Polygon, DongFeatureProps>;
@@ -17,7 +19,63 @@ type Props = {
   /** 선택한 동 라벨에 보일 실질 월 주거비(만원) */
   value: number;
   onSelect: (dong: string) => void;
+  /** 선택한 동·주택유형의 실거래 건물 (신규 계약, 건물별 최근 계약) */
+  points?: BuildingPoint[];
+  /** 동 기준 주거비 C(만원). 점 색: 이하면 초록, 넘으면 빨강 */
+  baseCost?: number | null;
+  /** 전월세 전환율 r (0.05 형태) */
+  rate?: number;
 };
+
+
+/** 같은 좌표(도로 중심 근사 등)에 겹치는 건물은 점 하나로 묶는다 */
+function groupByCoord(points: BuildingPoint[]) {
+  const m = new Map<string, BuildingPoint[]>();
+  for (const p of points) {
+    const k = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+    m.set(k, [...(m.get(k) ?? []), p]);
+  }
+  return [...m.values()];
+}
+
+const ym = (s: string) => `${s.slice(0, 4)}.${s.slice(4, 6)}`;
+
+function PointMarkers({ points, baseCost, rate }: { points: BuildingPoint[]; baseCost: number | null; rate: number }) {
+  const groups = useMemo(() => groupByCoord(points), [points]);
+  const converted = (p: BuildingPoint) => p.rent + (p.deposit * rate) / 12;
+  return (
+    <Pane name="points" style={{ zIndex: 450 }}>
+      {groups.map((g) => {
+        const sorted = [...g].sort((a, b) => converted(a) - converted(b));
+        const best = sorted[0];
+        const cheap = baseCost == null || converted(best) <= baseCost;
+        return (
+          <CircleMarker
+            key={`${best.lat},${best.lng}`}
+            center={[best.lat, best.lng]}
+            radius={g.length > 1 ? 6.5 : 5}
+            pathOptions={{ color: "#ffffff", weight: 1.5, fillColor: cheap ? POINT_CHEAP : POINT_PRICEY, fillOpacity: 0.95 }}
+          >
+            <Tooltip direction="top" offset={[0, -4]} className="point-tip">
+              <div className="flex flex-col gap-1">
+                {sorted.slice(0, 4).map((p) => (
+                  <div key={p.road_addr + p.name}>
+                    <strong>{p.name}</strong>
+                    <br />
+                    보증금 {formatManwon(p.deposit)} / 월세 {formatManwon(p.rent)} · {ym(p.contract_ym)}
+                    {p.count > 1 ? ` · 1년 ${p.count}건` : ""}
+                  </div>
+                ))}
+                {g.length > 4 && <div>외 {g.length - 4}곳</div>}
+                {best.approx && <div className="point-tip-note">위치는 도로 기준 근사</div>}
+              </div>
+            </Tooltip>
+          </CircleMarker>
+        );
+      })}
+    </Pane>
+  );
+}
 
 const DIMMED: PathOptions = { fillColor: "#6b7280", fillOpacity: 0.3, color: "#ffffff", weight: 1, opacity: 1 };
 const DIMMED_HOVER: PathOptions = { ...DIMMED, fillOpacity: 0.45, color: "#374151", weight: 1.5 };
@@ -46,7 +104,7 @@ function FlyToDong({ geojson, selected }: { geojson: FeatureCollection<Polygon, 
 }
 
 /** 진단 페이지용: 선택한 동만 색칠하고 나머지 동은 회색으로 흐리게 */
-export default function DongFocusMap({ geojson, selected, color, value, onSelect }: Props) {
+export default function DongFocusMap({ geojson, selected, color, value, onSelect, points = [], baseCost = null, rate = 0.05 }: Props) {
   const district = useMemo(() => boundsOf(geojson), [geojson]);
   const mask = useMemo(() => outsideMask(geojson, district), [geojson, district]);
   const layerRef = useRef<L.GeoJSON | null>(null);
@@ -86,9 +144,9 @@ export default function DongFocusMap({ geojson, selected, color, value, onSelect
       bounds={district}
       maxBounds={district.pad(0.15)}
       maxBoundsViscosity={1}
-      maxZoom={17}
+      maxZoom={18}
       zoomSnap={0.25}
-      scrollWheelZoom={false}
+      scrollWheelZoom
       attributionControl
       className="dong-map h-full w-full rounded-lg"
     >
@@ -121,6 +179,7 @@ export default function DongFocusMap({ geojson, selected, color, value, onSelect
           });
         }}
       />
+      <PointMarkers points={points} baseCost={baseCost} rate={rate} />
     </MapContainer>
   );
 }

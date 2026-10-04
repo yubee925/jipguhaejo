@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { loadBuildingPoints } from "@/lib/buildingPoints";
 import PageHeading from "../components/PageHeading";
 import DiagnosisView from "./DiagnosisView";
 
@@ -10,7 +11,7 @@ export default function DiagnosisPage() {
       <PageHeading label="Diagnosis" title="내 주거비 진단">
         조건을 입력하면 받을 수 있는 정책을 찾아 지원금을 반영한 실질 주거비를 바로 계산합니다.
       </PageHeading>
-      <DiagnosisView />
+      <DiagnosisView points={loadBuildingPoints()} />
     </div>
   );
 }

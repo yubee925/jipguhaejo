@@ -82,8 +82,7 @@ function PolicyRow({ m, right, note, highlight }: { m: MatchResult; right?: Reac
       {m.eligible && m.warnings.filter((w) => w !== "공고 재확인 필요").length > 0 && (
         <div className="text-amber-700">확인 필요: {m.warnings.filter((w) => w !== "공고 재확인 필요").join(", ")}</div>
       )}
-      <div className="flex justify-between gap-2">
-        <span className="text-muted">{p.notes}</span>
+      <div className="flex justify-end">
         <PolicyLink p={p} />
       </div>
     </li>
@@ -131,8 +130,6 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
   const lottery = by("lottery");
   const nextYear = by("next_year");
   const cards = by("card");
-  const ineligible = by("ineligible");
-  const na = by("na");
 
   return (
     <section className="flex flex-col rounded-xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -277,19 +274,6 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
                 <PolicyRow key={x.policy.policy_id} m={x} note={cardDetail(x.policy) || undefined} />
               ))}
             </Bucket>
-          )}
-          {ineligible.length > 0 && (
-            <Bucket title="해당 안 됨" desc="탈락 사유" tone="muted">
-              {ineligible.map((x) => (
-                <li key={x.policy.policy_id} className="flex flex-col gap-0.5 rounded-lg border border-dashed border-border p-3 text-xs">
-                  <span className="font-medium">{x.policy.name}</span>
-                  <span className="text-muted">{x.reasons.join(" · ")}</span>
-                </li>
-              ))}
-            </Bucket>
-          )}
-          {na.length > 0 && (
-            <p className="text-[11px] text-muted">전세 전용이라 월세에는 해당 없음: {na.map((x) => x.policy.name).join(", ")}</p>
           )}
         </div>
 

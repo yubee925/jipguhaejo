@@ -80,6 +80,23 @@ body {
   .leaflet-tooltip.dong-label.dong-label-flash { animation: none; }
 }
 
+/* 실거래 건물 점 툴팁 */
+.leaflet-tooltip.point-tip {
+  max-width: 260px;
+  white-space: normal;
+  border-radius: 8px;
+  border: 0;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.16);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.point-tip-note {
+  color: #6b7280;
+  font-size: 10px;
+}
+
 /* 캐릭터가 제자리에서 둥실거림 */
 @keyframes mascot-bob {
   0%, 100% { transform: translateY(0); }

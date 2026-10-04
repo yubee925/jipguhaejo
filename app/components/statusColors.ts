@@ -10,3 +10,7 @@ export const STATUS_LABEL: Record<keyof typeof STATUS_COLOR, string> = {
   orange: "보통",
   red: "부담 큼",
 };
+
+/** 진단 지도 실거래 점: 동 기준 주거비 C 이하 / 초과 */
+export const POINT_CHEAP = STATUS_COLOR.green;
+export const POINT_PRICEY = STATUS_COLOR.red;

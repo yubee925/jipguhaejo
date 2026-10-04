@@ -2,13 +2,15 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useMemo } from "react";
+import type { BuildingPoint } from "@/lib/buildingPoints";
 import { HOUSING_TYPE_LABEL } from "@/lib/conditions";
 import { formatManwon } from "@/lib/format";
 import { DISTRICT } from "@/lib/region";
 import { useApp } from "../components/AppProvider";
 import ConditionForm from "../components/ConditionForm";
 import DetailPanel from "../components/DetailPanel";
-import { STATUS_COLOR } from "../components/statusColors";
+import { POINT_CHEAP, POINT_PRICEY, STATUS_COLOR } from "../components/statusColors";
 
 // Leaflet은 window가 필요해 SSR 제외
 const DongFocusMap = dynamic(() => import("../components/DongFocusMap"), {
@@ -16,8 +18,13 @@ const DongFocusMap = dynamic(() => import("../components/DongFocusMap"), {
   loading: () => <div className="h-full w-full animate-pulse rounded-lg bg-background" />,
 });
 
-export default function DiagnosisView() {
+export default function DiagnosisView({ points }: { points: BuildingPoint[] }) {
   const { conditions, setConditions, selectDong, diagnosis, comparison, geojson, dongs, k, user } = useApp();
+  // 선택한 동·주택유형의 실거래 건물만 지도에 점으로
+  const dongPoints = useMemo(
+    () => points.filter((p) => p.dong === conditions.dong && p.housing_type === user.housingType),
+    [points, conditions.dong, user.housingType],
+  );
 
   // 동네 비교 지도와 같은 색 (compareDongs 의 colors). 거래가 없으면 회색
   const tone = comparison.colors[conditions.dong];
@@ -54,16 +61,29 @@ export default function DiagnosisView() {
               </span>
             )}
           </header>
-          <div className="relative z-0 h-72 p-3">
+          <div className="relative z-0 h-[36rem] p-3">
             <DongFocusMap
               geojson={geojson}
               selected={conditions.dong}
               color={color}
               value={diagnosis.available ? diagnosis.real : 0}
               onSelect={selectDong}
+              points={dongPoints}
+              baseCost={diagnosis.available ? diagnosis.base.C : null}
+              rate={k.CONVERSION_RATE / 100}
             />
           </div>
-          <p className="px-4 pb-3 text-[11px] text-muted">회색 동을 누르면 그 동으로 바꿔 진단합니다.</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pb-3 text-[11px] text-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: POINT_CHEAP }} />동 기준보다 저렴한 실거래
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: POINT_PRICEY }} />동 기준보다 비싼 실거래
+            </span>
+            <span>
+              점 {dongPoints.length.toLocaleString("ko-KR")}곳 · 최근 1년 신규 계약 · 점에 마우스를 올리면 금액, 휠로 확대 · 회색 동을 누르면 그 동으로 바꿔 진단
+            </span>
+          </div>
         </section>
 
         <DetailPanel diagnosis={diagnosis} context={`${DISTRICT} ${conditions.dong} · ${typeLabel}`} conversionRate={k.CONVERSION_RATE} />
