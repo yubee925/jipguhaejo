@@ -79,7 +79,7 @@
 2. 동 기준 주거비 C = 해당 동 + 선택 housing_type + 신규 계약(is_new=Y) 거래들의 ①값 중앙값
    - 월세·보증금을 따로 중앙값 내지 않는다.
    - 거래가 MIN_SAMPLE 미만이면 "표본 부족" 표시.
-3. 정책 지원금 S (월 계산에는 category_code=RENT 만 사용)
+3. 정책 지원금 S (월 계산에는 category_code=RENT, BENEFIT 사용. data/guide/guide_policies.md 기준)
    - 정책별 인정 지원액 = min(benefit_monthly, 실제 월세)
    - S = 자격 충족 RENT 정책들의 인정 지원액 합
    - exclusive_with 로 함께 못 받는 정책끼리는 가장 유리한 1개만 적용
@@ -96,7 +96,7 @@ category_code 별 화면 처리
 - LOAN: 계산 제외, 정책대출 카드 (한도·금리 안내)
 - REFUND / benefit_lump: 월 계산과 섞지 않고 "초기 비용" 카드
 - HOUSING: 계산 제외, 임대주택 안내 카드
-- BENEFIT: 계산 제외, 복지급여 안내 카드
+- BENEFIT: 월 계산에 반영 (지급액 = min(실제 월세, benefit_monthly)). P12 주거급여 청년 분리지급
 - verify_needed=Y 인 정책은 카드에 "공고 재확인 필요" 표시
 - 관리비는 계산 제외, 화면에 "관리비 별도" 표시
 

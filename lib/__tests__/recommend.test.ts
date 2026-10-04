@@ -82,4 +82,12 @@ describe("recommend", () => {
     expect(res.items.map((x) => x.listing.road_addr)).not.toContain("public");
     expect(recommend(pool, user(), [], K, { includeUnusual: true }).items.map((x) => x.listing.road_addr)).toContain("public");
   });
+
+  it("보유 보증금 0원이면 보증금 0원 매물만, 미입력이면 보증금 필터 없음 (교수님 리뷰 2-3)", () => {
+    const pool = [lst({ road_addr: "zero", deposit: 0 }), lst({ road_addr: "some", deposit: 500 })];
+    const names = (u: UserInput) => recommend(pool, u, [], K).items.map((x) => x.listing.road_addr).sort();
+    expect(names(user({ myDeposit: 0 }))).toEqual(["zero"]);
+    expect(names(user({ myDeposit: undefined }))).toEqual(["some", "zero"]);
+    expect(names(user({ myDeposit: 500 }))).toEqual(["some", "zero"]);
+  });
 });

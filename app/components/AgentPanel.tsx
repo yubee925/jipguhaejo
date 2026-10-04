@@ -46,7 +46,7 @@ export default function AgentPanel({ conditions, onClose }: Props) {
 
   async function ask(question: string, questionId?: QuestionId) {
     const q = question.trim();
-    if (!q) return;
+    if (!q || busy) return; // 답변 중 반복 전송 방지 (버튼 비활성화 + 함수에서도 한 번 더 막음)
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;

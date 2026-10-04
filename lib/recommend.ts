@@ -71,7 +71,8 @@ export function recommend(
 ): { items: Recommendation[]; candidates: number; buildings: number; unusual: number } {
   const { dong, maxMonthly = null, withinDeposit = true, newOnly = true, areaMax = AREA_MAX, includeUnusual = false } = opts;
   const r = k.CONVERSION_RATE / 100;
-  const myDeposit = u.myDeposit ?? 0;
+  // 미입력(undefined)이면 보증금 필터를 쓰지 않고, 0원이면 보증금 0원 매물만 남긴다
+  const myDeposit = u.myDeposit;
 
   const comparable = listings.filter(
     (l) => l.housing_type === u.housingType && l.area_m2 <= areaMax && (!newOnly || l.is_new === "Y"),
@@ -90,7 +91,7 @@ export function recommend(
   let unusual = 0;
   const pool = comparable.filter((l) => {
     if (dong && l.dong !== dong) return false;
-    if (withinDeposit && myDeposit > 0 && l.deposit > myDeposit) return false;
+    if (withinDeposit && myDeposit != null && l.deposit > myDeposit) return false;
     if (!includeUnusual && isUnusual(l)) {
       unusual += 1;
       return false;

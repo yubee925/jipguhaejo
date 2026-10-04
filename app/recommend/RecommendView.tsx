@@ -148,7 +148,7 @@ export default function RecommendView({ listings }: { listings: Listing[] }) {
               checked={withinDeposit}
               onChange={(e) => (setWithinDeposit(e.target.checked), setShown(PAGE))}
             />
-            내 보증금({formatManwon(user.myDeposit ?? 0)}) 안에서 계약한 집만
+            {user.myDeposit != null ? `내 보증금(${formatManwon(user.myDeposit)}) 안에서 계약한 집만` : "내 보증금 안에서 계약한 집만 (보증금을 입력하면 적용)"}
           </label>
           <label className="flex items-start gap-2 text-sm">
             <input

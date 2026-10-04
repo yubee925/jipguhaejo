@@ -168,6 +168,20 @@ export default function DetailPanel({ diagnosis: d, context, conversionRate }: P
               <p className="-mt-3 text-xs text-muted">지금 바로 반영되는 월세 지원은 없습니다.</p>
             )}
 
+            {/* 환산 비용과 실제 현금 지출 구분 (교수님 리뷰 1-4-2) */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg border border-border px-3 py-2">
+                <div className="text-muted">매달 실제로 나가는 돈</div>
+                <div className="mt-0.5 text-base font-semibold tabular-nums">{m1(Math.max(d.listing.rent - d.S, 0))}</div>
+                <div className="text-[11px] text-muted">월세 − 지원금 (현금 지출)</div>
+              </div>
+              <div className="rounded-lg border border-border px-3 py-2">
+                <div className="text-muted">보증금 환산분</div>
+                <div className="mt-0.5 text-base font-semibold tabular-nums">{m1(Math.max(C - d.listing.rent, 0))}</div>
+                <div className="text-[11px] text-muted">현금으로 나가진 않지만 보증금을 묶어 두는 비용</div>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-3">
               <h3 className="text-xs font-semibold text-muted">비용 구성 (대표 매물: 월세 {m0(d.listing.rent)} · 보증금 {m0(d.listing.deposit)})</h3>
               <CostBar rent={d.listing.rent} depositCost={Math.max(C - d.listing.rent, 0)} support={d.S} format={m1} />

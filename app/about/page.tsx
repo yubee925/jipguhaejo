@@ -42,8 +42,8 @@ export default function AboutPage() {
           </li>
         </ol>
         <p className="text-xs text-muted">
-          소득은 월소득 ÷ 2026년 1인가구 기준중위소득({k.MEDIAN_1P.toLocaleString("ko-KR")}만원)으로 비교합니다. 대출·이자지원·초기 비용·임대주택·복지급여는
-          월 계산에 넣지 않고 안내 카드로 보여 줍니다.
+          소득은 월소득 ÷ 2026년 1인가구 기준중위소득({k.MEDIAN_1P.toLocaleString("ko-KR")}만원)으로 비교합니다. 월 계산에는 월세 지원과 주거급여(청년
+          분리지급)처럼 매달 현금으로 받는 지원만 반영하고, 대출·이자지원·초기 비용·임대주택은 안내 카드로 따로 보여 줍니다.
         </p>
       </section>
 

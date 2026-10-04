@@ -10,6 +10,7 @@ import {
   PARENT_INCOME,
   PARENT_REGION,
   RESIDENT,
+  missingRequired,
   type Conditions,
 } from "@/lib/conditions";
 import { DISTRICT } from "@/lib/region";
@@ -100,6 +101,8 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
   const set = <K extends keyof Conditions>(key: K, v: Conditions[K]) => onChange({ ...value, [key]: v });
   const income = Number(value.monthlyIncome);
   const pct = Number.isFinite(income) && income > 0 ? Math.round((income / medianIncome) * 100) : null;
+  const missing = missingRequired(value);
+  const needInput = <span className="font-medium text-[#D0654F]">입력해 주세요 (빈칸은 0으로 계산하지 않아요)</span>;
 
   return (
     <Card title="내 조건 입력" subtitle="바꾸면 결과가 바로 바뀌어요" className="flex-1">
@@ -107,10 +110,10 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">내 정보</legend>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="나이" unit="세">
+            <Field label="나이" unit="세" hint={missing.includes("나이") ? needInput : undefined}>
               <input type="number" inputMode="numeric" min={0} className={`${inputClass} pr-14`} value={value.age} onChange={(e) => set("age", e.target.value)} />
             </Field>
-            <Field label="월소득" unit="만원" hint={pct !== null ? `기준중위소득의 ${pct}%` : "세전 월 소득"}>
+            <Field label="월소득" unit="만원" hint={missing.includes("월소득") ? needInput : pct !== null ? `기준중위소득의 ${pct}%` : "세전 월 소득"}>
               <input type="number" inputMode="numeric" min={0} step={10} className={`${inputClass} pr-14`} value={value.monthlyIncome} onChange={(e) => set("monthlyIncome", e.target.value)} />
             </Field>
           </div>
@@ -149,7 +152,7 @@ export default function ConditionForm({ value, onChange, dongs, medianIncome }: 
                 ))}
               </select>
             </Field>
-            <Field label="보유 보증금" unit="만원">
+            <Field label="보유 보증금" unit="만원" hint={value.myDeposit.trim() === "" ? "비워 두면 보증금 조건 없이 보여 줘요. 보증금이 없으면 0" : undefined}>
               <input type="number" inputMode="numeric" min={0} step={100} className={`${inputClass} pr-14`} value={value.myDeposit} onChange={(e) => set("myDeposit", e.target.value)} />
             </Field>
           </div>

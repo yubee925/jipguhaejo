@@ -12,6 +12,8 @@ import {
   PARENT_INCOME,
   PARENT_REGION,
   RESIDENT,
+  invalidConditions,
+  missingRequired,
   toUserInput,
   type Conditions,
 } from "../conditions";
@@ -66,5 +68,35 @@ describe("toUserInput", () => {
     const u = toUserInput({ ...c, marital: "X" as never, currentSupport: ["P01", "BAD"] as never });
     expect(u.marital).toBe("SINGLE");
     expect(u.currentSupport).toEqual(["P01"]);
+  });
+});
+
+describe("빈칸과 0 구분 (교수님 리뷰 2-1, 2-3)", () => {
+  const c: Conditions = { ...DEFAULT_CONDITIONS, dong: "화양동" };
+  it("보유 보증금: 빈칸은 미입력, 0은 0", () => {
+    expect(toUserInput({ ...c, myDeposit: "" }).myDeposit).toBeUndefined();
+    expect(toUserInput({ ...c, myDeposit: "  " }).myDeposit).toBeUndefined();
+    expect(toUserInput({ ...c, myDeposit: "0" }).myDeposit).toBe(0);
+    expect(toUserInput({ ...c, myDeposit: "500" }).myDeposit).toBe(500);
+    expect(toUserInput({ ...c, myDeposit: "-3" }).myDeposit).toBe(0);
+  });
+  it("나이·월소득 빈칸은 필수 입력으로 안내", () => {
+    expect(missingRequired({ age: "", monthlyIncome: "150" })).toEqual(["나이"]);
+    expect(missingRequired({ age: "27", monthlyIncome: "0" })).toEqual([]); // 소득 0은 정상 입력
+  });
+});
+
+describe("API 입력 검증 (교수님 리뷰 2-2)", () => {
+  const ok = { ...DEFAULT_CONDITIONS, dong: "화양동" };
+  it("정상 입력은 통과", () => {
+    expect(invalidConditions(ok)).toBeNull();
+    expect(invalidConditions({ ...ok, myDeposit: "" })).toBeNull();
+  });
+  it("빈칸·범위 밖·이상한 값은 거절", () => {
+    expect(invalidConditions({ ...ok, age: "" })).toMatch("나이");
+    expect(invalidConditions({ ...ok, age: "200" })).toMatch("나이");
+    expect(invalidConditions({ ...ok, monthlyIncome: "abc" })).toMatch("월소득");
+    expect(invalidConditions({ ...ok, myDeposit: "-1" })).toMatch("보증금");
+    expect(invalidConditions({ ...ok, housingType: "apartment" as never })).toMatch("주택유형");
   });
 });

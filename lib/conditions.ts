@@ -106,17 +106,55 @@ export const HOUSING_TYPE_LABEL: Record<HousingType, string> = {
   villa: "연립·다세대",
 };
 
+const isBlank = (v: unknown) => v == null || (typeof v === "string" && v.trim() === "");
+
 const toNumber = (v: unknown) => {
+  if (isBlank(v)) return 0;
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
+
+/** 빈칸 = 미입력(undefined), 0 = 0. 둘을 구분해야 하는 값(보유 보증금)에 사용 */
+const toOptionalNumber = (v: unknown): number | undefined => {
+  if (isBlank(v)) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(n, 0) : undefined;
+};
+
+/** 계산에 꼭 필요한데 빈칸인 항목 (화면 안내·API 검증용) */
+export function missingRequired(c: Pick<Conditions, "age" | "monthlyIncome">): string[] {
+  const out: string[] = [];
+  if (isBlank(c.age)) out.push("나이");
+  if (isBlank(c.monthlyIncome)) out.push("월소득");
+  return out;
+}
+
+/** API로 들어온 숫자 입력의 범위 검사. 문제가 있으면 안내 문구, 없으면 null */
+export function invalidConditions(c: Partial<Record<keyof Conditions, unknown>>): string | null {
+  const missing = missingRequired({ age: c.age as string, monthlyIncome: c.monthlyIncome as string });
+  if (missing.length) return `${missing.join("·")}을(를) 입력해 주세요.`;
+  const ranges: [keyof Conditions, string, number, number][] = [
+    ["age", "나이", 15, 70],
+    ["monthlyIncome", "월소득", 0, 10000],
+    ["myDeposit", "보유 보증금", 0, 100000],
+    ["asset", "자산", 0, 1000000],
+  ];
+  for (const [key, label, min, max] of ranges) {
+    if (isBlank(c[key])) continue;
+    const n = Number(c[key]);
+    if (!Number.isFinite(n) || n < min || n > max) return `${label} 값이 올바르지 않습니다 (${min}~${max}).`;
+  }
+  if (c.housingType !== undefined && !(c.housingType === "officetel" || c.housingType === "villa"))
+    return "주택유형 값이 올바르지 않습니다.";
+  return null;
+}
 
 /** 선택지에 없는 값(API로 들어온 잘못된 값 등)은 기본값 */
 function pick<T extends readonly { value: string }[]>(opts: T, v: unknown, fallback: V<T>): V<T> {
   return opts.some((o) => o.value === v) ? (v as V<T>) : fallback;
 }
 
-/** 폼 상태 → UserInput. 음수·NaN은 0 */
+/** 폼 상태 → UserInput. 음수·NaN은 0. 보유 보증금은 빈칸(미입력)과 0을 구분 */
 export function toUserInput(c: Conditions): UserInput {
   const d = DEFAULT_CONDITIONS;
   const asset = typeof c.asset === "string" && c.asset.trim() !== "" && Number.isFinite(Number(c.asset)) ? Math.max(Number(c.asset), 0) : null;
@@ -127,7 +165,7 @@ export function toUserInput(c: Conditions): UserInput {
     independent: c.independent === true,
     single: c.single === true,
     housingType: c.housingType === "villa" ? "villa" : "officetel",
-    myDeposit: toNumber(c.myDeposit),
+    myDeposit: toOptionalNumber(c.myDeposit),
     marital: pick(MARITAL, c.marital, d.marital),
     job: pick(JOB, c.job, d.job),
     resident: pick(RESIDENT, c.resident, d.resident),

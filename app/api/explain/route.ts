@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { toUserInput, type Conditions } from "@/lib/conditions";
+import { invalidConditions, toUserInput, type Conditions } from "@/lib/conditions";
 import { listDongs, loadConstants, loadPolicies, loadRent } from "@/lib/data";
 import { DISTRICT } from "@/lib/region";
 import {
@@ -13,6 +13,22 @@ import {
 
 const MODEL = "claude-opus-5";
 const MAX_QUESTION_LENGTH = 300;
+/** 토큰 예산: 답변은 5~8문장이라 이 정도면 충분. 넘으면 "중간에 끊겼다" 안내 */
+const MAX_OUTPUT_TOKENS = 2000;
+/** 응답 시간 예산: 이 시간 안에 끝나지 않으면 템플릿 해설로 대체 */
+const TIMEOUT_MS = 20_000;
+/** 같은 사용자가 이 간격 안에 다시 보내면 거절 (서버 인스턴스별 메모리 기준, 최선 노력) */
+const MIN_INTERVAL_MS = 2_000;
+
+const lastRequestAt = new Map<string, number>();
+function tooSoon(request: Request): boolean {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const now = Date.now();
+  const prev = lastRequestAt.get(ip);
+  lastRequestAt.set(ip, now);
+  if (lastRequestAt.size > 5000) lastRequestAt.clear(); // 메모리 보호
+  return prev != null && now - prev < MIN_INTERVAL_MS;
+}
 
 const SYSTEM_PROMPT = `당신은 서울 ${DISTRICT} 주거비 대시보드의 해설 도우미입니다.
 <calculation> 안의 수치만 근거로 사용자의 질문에 한국어로 답하세요.
@@ -65,6 +81,10 @@ export function GET() {
 }
 
 export async function POST(request: Request) {
+  if (tooSoon(request)) {
+    return Response.json({ error: "요청이 너무 빠릅니다. 잠시 후 다시 질문해 주세요." }, { status: 429 });
+  }
+
   let body: { question?: unknown; questionId?: unknown; conditions?: unknown };
   try {
     body = await request.json();
@@ -73,9 +93,12 @@ export async function POST(request: Request) {
   }
 
   const question = typeof body.question === "string" ? body.question.trim().slice(0, MAX_QUESTION_LENGTH) : "";
-  if (!question || typeof body.conditions !== "object" || body.conditions === null) {
+  if (!question || typeof body.conditions !== "object" || body.conditions === null || Array.isArray(body.conditions)) {
     return Response.json({ error: "question과 conditions가 필요합니다." }, { status: 400 });
   }
+  // JSON 파싱 후 실제 값 검증: 필수값 빈칸, 숫자 범위, 선택지 밖 값
+  const invalid = invalidConditions(body.conditions as Record<string, unknown>);
+  if (invalid) return Response.json({ error: invalid }, { status: 400 });
 
   const data = getData();
   const conditions = body.conditions as Conditions;
@@ -92,11 +115,11 @@ export async function POST(request: Request) {
 
   if (!hasApiKey()) return textResponse(fallback(), "template", "no_api_key");
 
-  const client = new Anthropic();
+  const client = new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 1 });
   const stream = client.beta.messages.stream(
     {
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: MAX_OUTPUT_TOKENS,
       // 안전 분류기가 거절하면 서버가 권장 모델로 자동 재시도
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",

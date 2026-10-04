@@ -152,7 +152,7 @@ export function contextToPrompt(ctx: ExplainContext): string {
   const { u } = ctx;
   const pct = Math.round((u.monthlyIncome / ctx.k.MEDIAN_1P) * 100);
   return [
-    `지역: 서울 ${DISTRICT} ${ctx.dong} / 주택유형: ${typeLabel(u.housingType)} / 보유 보증금: ${formatManwon(u.myDeposit ?? 0)}`,
+    `지역: 서울 ${DISTRICT} ${ctx.dong} / 주택유형: ${typeLabel(u.housingType)} / 보유 보증금: ${u.myDeposit != null ? formatManwon(u.myDeposit) : "미입력"}`,
     `사용자: 만 ${u.age}세, 월소득 ${formatManwon(u.monthlyIncome)}(기준중위소득 ${pct}%), ${u.homeless ? "무주택" : "유주택"}, ${u.independent ? "독립거주" : "부모와 거주"}, ${u.single ? "1인 가구" : "2인 이상 가구"}`,
     // 취업 상태는 판정에 쓰지 않고 설명 문구 맞춤에만 쓴다 (input_fields.csv)
     `혼인: ${MARITAL.find((o) => o.value === u.marital)?.label ?? "미혼"} / 취업: ${JOB.find((o) => o.value === u.job)?.label ?? "-"} / 주민등록지: ${RESIDENT.find((o) => o.value === u.resident)?.label ?? "광진구"}`,
