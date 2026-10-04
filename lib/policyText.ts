@@ -67,9 +67,9 @@ export function conditionParts(p: Policy): string[] {
 
 /**
  * 월세 지원(RENT·BENEFIT) 정책을 지금 바로 받지 못하는 이유 한 줄. matchPolicy 결과(bucket·reasons·warnings)를 그대로 쓴다.
- * - 매물 조건 탈락("… 매물"): "월세 60만원 이하만 가능 (이 동 대표 매물 월세 64.5만원)"
+ * - 매물 조건 탈락("… 매물"): "월세 60만원 이하만 가능 (이 동 대표 매물 64.5만원)"
  * - 그 밖의 탈락: "대상 아님: 기초생활수급 가구, …"
- * - 환산 합계 예외: "(단, 보증금·월세 환산 합계 90만원 이하면 신청 가능할 수 있어요)"
+ * - 환산 합계 예외는 같은 괄호 안에: "(이 동 대표 매물 64.5만원, 단 환산 합계 90만원 이하면 가능할 수 있어요)"
  * listing 은 진단에 쓴 대표 매물. 확정 지원이거나 월세 서비스 해당 없음(na)이면 null.
  */
 export function supportMissText(m: MatchResult, listing?: { rent: number; deposit: number }): string | null {
@@ -83,14 +83,19 @@ export function supportMissText(m: MatchResult, listing?: { rent: number; deposi
   const byListing = m.reasons.filter(isListing);
   const parts: string[] = [];
   if (other.length) parts.push(`대상 아님: ${other.join(", ")}`);
-  if (byListing.length) {
-    const shown: string[] = [];
-    if (listing && byListing.some((r) => r.startsWith("월세"))) shown.push(`월세 ${formatManwon(listing.rent, 1)}`);
-    if (listing && byListing.some((r) => r.startsWith("보증금"))) shown.push(`보증금 ${formatManwon(listing.deposit)}`);
-    const only = byListing.map((r) => r.slice(0, -" 매물".length)).join(", ");
-    parts.push(`${only}만 가능${shown.length ? ` (이 동 대표 매물 ${shown.join(" · ")})` : ""}`);
+  if (byListing.length) parts.push(`${byListing.map((r) => r.slice(0, -" 매물".length)).join(", ")}만 가능`);
+
+  // 괄호 안 보충 설명: 대표 매물 값, 환산 합계 예외
+  const notes: string[] = [];
+  const shown: [label: string, value: string][] = [];
+  if (listing && byListing.some((r) => r.startsWith("월세"))) shown.push(["월세", formatManwon(listing.rent, 1)]);
+  if (listing && byListing.some((r) => r.startsWith("보증금"))) shown.push(["보증금", formatManwon(listing.deposit)]);
+  if (shown.length) {
+    // 매물 조건이 하나뿐이면 앞 문구에 이미 항목 이름이 있어 값만 쓴다
+    const values = byListing.length === 1 && shown.length === 1 ? shown[0][1] : shown.map(([l, v]) => `${l} ${v}`).join(" · ");
+    notes.push(`이 동 대표 매물 ${values}`);
   }
   const sums = m.warnings.map(rentSumMaxOf).filter((n): n is number => n != null);
-  const extra = sums.length ? ` (단, 보증금·월세 환산 합계 ${sums.map((n) => `${n}만원`).join("·")} 이하면 신청 가능할 수 있어요)` : "";
-  return `${parts.join(" · ")}${extra}`;
+  if (sums.length) notes.push(`단 환산 합계 ${sums.map((n) => `${n}만원`).join("·")} 이하면 가능할 수 있어요`);
+  return `${parts.join(" · ")}${notes.length ? ` (${notes.join(", ")})` : ""}`;
 }

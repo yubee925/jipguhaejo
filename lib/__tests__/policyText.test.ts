@@ -49,9 +49,13 @@ describe("월세 지원을 못 받는 이유 한 줄", () => {
       warnings: ["자산 1억 3,000만원 이하 확인 필요", "보증금·월세 환산 합계 90만원 이하인지 확인 필요"],
     });
     expect(supportMissText(m, { rent: 64.5, deposit: 530 })).toBe(
-      "월세 60만원 이하만 가능 (이 동 대표 매물 월세 64.5만원) (단, 보증금·월세 환산 합계 90만원 이하면 신청 가능할 수 있어요)",
+      "월세 60만원 이하만 가능 (이 동 대표 매물 64.5만원, 단 환산 합계 90만원 이하면 가능할 수 있어요)",
     );
-    // 대표 매물 정보가 없으면 괄호 없이
+    // 환산 합계 예외가 없으면 대표 매물 값만
+    expect(supportMissText(mr({ eligible: false, bucket: "ineligible", reasons: ["월세 60만원 이하 매물"] }), { rent: 64.5, deposit: 530 })).toBe(
+      "월세 60만원 이하만 가능 (이 동 대표 매물 64.5만원)",
+    );
+    // 대표 매물 정보도 없으면 괄호 없이
     expect(supportMissText(mr({ eligible: false, bucket: "ineligible", reasons: ["월세 60만원 이하 매물"] }))).toBe("월세 60만원 이하만 가능");
   });
   it("매물 조건이 아닌 탈락 → 대상 아님: reasons 그대로", () => {
