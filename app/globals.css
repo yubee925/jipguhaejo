@@ -9,6 +9,8 @@
   --accent: #2563eb;
   --accent-soft: #eff6ff;
   --positive: #047857;
+  /* 결론 카드 포인트 색 (CLAUDE.md 디자인: 딥그린) */
+  --deep: #1f4d3a;
   /* 차트 범주 색 (dataviz 기본 팔레트 슬롯 1·2) */
   --series-1: #2a78d6;
   --series-2: #eb6834;
@@ -23,6 +25,7 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-positive: var(--positive);
+  --color-deep: var(--deep);
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
   --font-sans: var(--font-geist-sans);

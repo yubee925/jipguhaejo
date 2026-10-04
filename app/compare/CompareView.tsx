@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { formatManwon } from "@/lib/format";
+import { won1 } from "../components/money";
 import { DISTRICT } from "@/lib/region";
 import AnimatedNumber from "../components/AnimatedNumber";
 import { useApp } from "../components/AppProvider";
 import MapCard from "../components/MapCard";
 import { HOUSING_TYPE_LABEL } from "@/lib/conditions";
-
-const won = (v: number) => formatManwon(v, 1);
 
 export default function CompareView() {
   const { geojson, comparison, conditions, selectDong, user } = useApp();
@@ -16,6 +15,12 @@ export default function CompareView() {
   const current = ranked.find((x) => x.dong === conditions.dong);
   const cheapest = ranked[0];
   const typeLabel = HOUSING_TYPE_LABEL[user.housingType];
+  // 결론 카드: 표본 충분한 동끼리 비교 (모두 부족하면 전체). ranked 는 실질 월 주거비 오름차순
+  const solid = ranked.filter((x) => !x.base.lowSample);
+  const pool = solid.length >= 2 ? solid : ranked;
+  const low = pool[0];
+  const high = pool[pool.length - 1];
+  const gap = low && high ? high.real - low.real : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,6 +33,18 @@ export default function CompareView() {
           조건 바꾸기
         </Link>
       </p>
+
+      {low && high && low.dong !== high.dong && (
+        <section className="rounded-xl bg-deep px-5 py-5 text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Bottom line</p>
+          <p className="mt-2 break-keep text-xl font-bold leading-snug sm:text-2xl">
+            같은 조건이어도 {low.dong}과 {high.dong}은 월 {won1(gap)}, 1년이면 {won1(gap * 12)} 차이나요
+          </p>
+          <p className="mt-2 text-xs text-white/70">
+            실질 월 주거비 {low.dong} {won1(low.real)} · {high.dong} {won1(high.real)}
+          </p>
+        </section>
+      )}
 
       <MapCard geojson={geojson} comparison={comparison} housingType={user.housingType} selected={conditions.dong} onSelect={selectDong} />
 
@@ -42,11 +59,11 @@ export default function CompareView() {
               </span>
             </div>
             <div className="mt-1 text-sm">
-              실질 월 주거비 <AnimatedNumber value={current.real} format={won} className="font-semibold" />
+              실질 월 주거비 <AnimatedNumber value={current.real} format={won1} className="font-semibold" />
               {cheapest && cheapest.dong !== current.dong && (
                 <span className="text-muted">
                   {" "}
-                  · 가장 저렴한 {cheapest.dong}보다 월 <AnimatedNumber value={current.real - cheapest.real} format={won} /> 더 듦
+                  · 가장 저렴한 {cheapest.dong}보다 월 <AnimatedNumber value={current.real - cheapest.real} format={won1} /> 더 듦
                 </span>
               )}
             </div>

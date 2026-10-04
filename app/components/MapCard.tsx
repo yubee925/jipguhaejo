@@ -3,10 +3,10 @@
 import dynamic from "next/dynamic";
 import type { FeatureCollection, Polygon } from "geojson";
 import { HOUSING_TYPE_LABEL } from "@/lib/conditions";
-import { formatManwon } from "@/lib/format";
 import { DISTRICT } from "@/lib/region";
 import type { HousingType } from "@/lib/types";
 import AnimatedNumber from "./AnimatedNumber";
+import { won1 } from "./money";
 import type { Comparison, DongFeatureProps } from "./AppProvider";
 import { STATUS_COLOR, STATUS_LABEL } from "./statusColors";
 
@@ -24,7 +24,6 @@ type Props = {
   onSelect: (dong: string) => void;
 };
 
-const won = (v: number) => formatManwon(v, 1);
 const NO_DATA = "#d1d5db";
 
 export default function MapCard({ geojson, comparison, housingType, selected, onSelect }: Props) {
@@ -74,19 +73,20 @@ export default function MapCard({ geojson, comparison, housingType, selected, on
                   type="button"
                   onClick={() => onSelect(x.dong)}
                   aria-pressed={x.dong === selected}
-                  className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 transition ${
+                  className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 transition ${
                     x.dong === selected ? "bg-accent-soft font-semibold" : "hover:bg-background"
-                  }`}
+                  } ${x.base.lowSample ? "text-muted" : ""}`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 text-right tabular-nums text-muted">{x.rank}</span>
-                    <span className="h-2.5 w-2.5 rounded-sm transition-colors duration-500" style={{ background: fills[x.dong] }} />
-                    {x.dong}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-3 shrink-0 text-right tabular-nums text-muted">{x.rank}</span>
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm transition-colors duration-500" style={{ background: fills[x.dong] }} />
+                    <span className="whitespace-nowrap">{x.dong}</span>
+                    <span className="whitespace-nowrap text-[11px] font-normal tabular-nums text-muted">거래 {x.base.count.toLocaleString("ko-KR")}건</span>
+                    {x.base.lowSample && (
+                      <span className="whitespace-nowrap rounded bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted ring-1 ring-border">표본 부족</span>
+                    )}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    {x.base.lowSample && <span className="text-[10px] text-amber-700">표본 부족</span>}
-                    <AnimatedNumber value={x.real} format={won} />
-                  </span>
+                  <AnimatedNumber value={x.real} format={won1} className="shrink-0 whitespace-nowrap" />
                 </button>
               </li>
             ))}
