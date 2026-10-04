@@ -34,6 +34,7 @@ export interface RuleCheck {
  * 월세가 rent_max(60) 를 넘어도 보증금 월세 환산액 + 월세가 상한 이하이면 신청 가능한 예외.
  * policies.csv 에는 rent_max 만 있어 이런 매물이 탈락 처리되므로, 판정은 그대로 두고 확인 안내만 붙인다.
  * 환산액 = 보증금 × 환산율 ÷ 12 (천원 단위 절사)
+ * 합계도 공고 예시처럼 천원 단위를 절사해 만원 단위로 비교한다 (예: 87.5 → 87, 90.4 → 90)
  */
 function rentSumException(
   listing: { deposit: number; rent: number },
@@ -41,8 +42,10 @@ function rentSumException(
 ): RuleCheck {
   const depositOk = o.depositInclusive ? listing.deposit <= o.depositMax : listing.deposit < o.depositMax;
   const converted = Math.floor(((listing.deposit * o.ratePct) / 100 / 12) * 10) / 10;
+  // 0.1 단위로 먼저 반올림해 부동소수점 오차(96.999… → 96)를 막은 뒤 만원 단위로 절사
+  const total = Math.floor(Math.round((listing.rent + converted) * 10) / 10);
   const warnings =
-    listing.rent > o.rentMax && depositOk && listing.rent + converted <= o.sumMax
+    listing.rent > o.rentMax && depositOk && total <= o.sumMax
       ? [`보증금·월세 환산 합계 ${o.sumMax}만원 이하인지 확인 필요`]
       : [];
   return { reasons: [], warnings };
