@@ -54,12 +54,13 @@ export default function ChatWidget({ conditions }: { conditions: Conditions }) {
         onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
         aria-controls="ai-chat"
-        className="group fixed bottom-6 right-4 z-[1000] flex h-14 items-center gap-1 rounded-full border border-accent/25 bg-surface pl-1.5 pr-5 text-sm font-semibold text-accent shadow-[0_8px_24px_rgba(37,99,235,0.22)] transition hover:border-accent/50 hover:bg-accent-soft active:scale-95 motion-reduce:transition-none"
+        // 모바일(md 미만): 캐릭터만 보이는 작은 원형. 문구는 스크린리더용으로만 남긴다
+        className="group fixed bottom-6 right-4 z-[1000] flex h-12 w-12 items-center justify-center rounded-full border border-accent/25 bg-surface text-sm font-semibold text-accent shadow-[0_8px_24px_rgba(37,99,235,0.22)] transition hover:border-accent/50 hover:bg-accent-soft active:scale-95 motion-reduce:transition-none md:h-14 md:w-auto md:justify-start md:gap-1 md:pl-1.5 md:pr-5"
       >
-        <span className="-mt-7 grid h-16 w-16 place-items-center">
-          <Mascot awake={open} className="mascot-bob h-16 w-16 drop-shadow-[0_4px_6px_rgba(16,24,40,0.25)]" />
+        <span className="grid h-11 w-11 place-items-center md:-mt-7 md:h-16 md:w-16">
+          <Mascot awake={open} className="mascot-bob h-11 w-11 drop-shadow-[0_4px_6px_rgba(16,24,40,0.25)] md:h-16 md:w-16" />
         </span>
-        {open ? "닫기" : "AI에게 물어보기"}
+        <span className="sr-only md:not-sr-only">{open ? "닫기" : "AI에게 물어보기"}</span>
       </button>
     </>
   );

@@ -4,7 +4,7 @@ import { NAV } from "./nav";
 export default function SiteFooter() {
   return (
     <footer className="border-t border-border bg-surface">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-6 text-xs text-muted sm:flex-row sm:items-start sm:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 pt-6 pb-24 text-xs md:pb-28 text-muted sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">
           <span className="font-semibold text-foreground">© 2026 집구해조</span>
           <span>데이터: 국토교통부 전월세 실거래가(2025.9~2026.9), 각 정책 공고(예시 수치)</span>

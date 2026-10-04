@@ -6,6 +6,7 @@ import type { CategoryCode, MatchResult, Policy } from "@/lib/types";
 import AnimatedNumber from "./AnimatedNumber";
 import type { Diagnosis } from "./AppProvider";
 import CostBar from "./CostBar";
+import PolicyApplyLink from "./PolicyApplyLink";
 
 type Period = "월" | "연";
 
@@ -39,16 +40,6 @@ function cardDetail(p: Policy): string {
   return parts.join(" · ");
 }
 
-function PolicyLink({ p }: { p: Policy }) {
-  return p.source_url ? (
-    <a href={p.source_url} target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
-      신청·공고 보기 →
-    </a>
-  ) : (
-    <span className="text-muted">공고 링크 준비 중</span>
-  );
-}
-
 function Bucket({ title, desc, tone, children }: { title: string; desc?: string; tone: "accent" | "muted" | "warn"; children: ReactNode }) {
   const color = tone === "accent" ? "text-accent" : tone === "warn" ? "text-amber-700" : "text-muted";
   return (
@@ -67,7 +58,7 @@ function PolicyRow({ m, right, note, highlight }: { m: MatchResult; right?: Reac
   return (
     <li className={`flex flex-col gap-1 rounded-lg border p-3 text-xs ${highlight ? "border-accent/40 bg-accent-soft/50" : "border-border"}`}>
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold leading-snug">{p.name}</span>
             {p.verify_needed && <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-800 ring-1 ring-amber-200">공고 재확인 필요</span>}
@@ -76,14 +67,14 @@ function PolicyRow({ m, right, note, highlight }: { m: MatchResult; right?: Reac
             {p.agency} · {CARD_KIND[p.category_code]}
           </div>
         </div>
-        {right && <div className="shrink-0 text-right font-semibold tabular-nums">{right}</div>}
+        {right && <div className="shrink-0 whitespace-nowrap text-right font-semibold tabular-nums">{right}</div>}
       </div>
       {note && <div className="text-muted">{note}</div>}
       {m.eligible && m.warnings.filter((w) => w !== "공고 재확인 필요").length > 0 && (
         <div className="text-amber-700">확인 필요: {m.warnings.filter((w) => w !== "공고 재확인 필요").join(", ")}</div>
       )}
-      <div className="flex justify-end">
-        <PolicyLink p={p} />
+      <div className="mt-1">
+        <PolicyApplyLink p={p} />
       </div>
     </li>
   );

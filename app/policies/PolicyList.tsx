@@ -5,6 +5,7 @@ import { formatManwon } from "@/lib/format";
 import { conditionParts } from "@/lib/policyText";
 import type { CategoryCode, MatchResult, Policy } from "@/lib/types";
 import { useApp } from "../components/AppProvider";
+import PolicyApplyLink from "../components/PolicyApplyLink";
 
 const LEVEL: Record<string, string> = { national: "전국", seoul: "서울시", gu: "광진구" };
 const CATEGORY: Record<CategoryCode, string> = {
@@ -60,7 +61,7 @@ export default function PolicyList() {
           return (
             <li key={p.policy_id} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="text-xs text-muted">
                     {LEVEL[p.level] ?? p.level} · {p.agency} · {CATEGORY[p.category_code]}
                   </div>
@@ -69,7 +70,7 @@ export default function PolicyList() {
                     <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-800 ring-1 ring-amber-200">공고 재확인 필요</span>
                   )}
                 </div>
-                {badge && <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge.tone}`}>{badge.label}</span>}
+                {badge && <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge.tone}`}>{badge.label}</span>}
               </div>
 
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl bg-background p-3 text-xs">
@@ -95,14 +96,9 @@ export default function PolicyList() {
                   <span className="text-amber-700">확인 필요: {m.warnings.filter((w) => w !== "공고 재확인 필요").join(", ")}</span>
                 )}
                 {p.notes && <span className="text-muted">{p.notes}</span>}
-                {p.source_url ? (
-                  <a href={p.source_url} target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
-                    신청·공고 보기 →
-                  </a>
-                ) : (
-                  <span className="text-muted">공고 링크 준비 중</span>
-                )}
               </div>
+
+              <PolicyApplyLink p={p} />
             </li>
           );
         })}
