@@ -30,6 +30,24 @@ export interface RuleCheck {
   warnings: string[];
 }
 
+/**
+ * 월세가 rent_max(60) 를 넘어도 보증금 월세 환산액 + 월세가 상한 이하이면 신청 가능한 예외.
+ * policies.csv 에는 rent_max 만 있어 이런 매물이 탈락 처리되므로, 판정은 그대로 두고 확인 안내만 붙인다.
+ * 환산액 = 보증금 × 환산율 ÷ 12 (천원 단위 절사)
+ */
+function rentSumException(
+  listing: { deposit: number; rent: number },
+  o: { depositMax: number; depositInclusive: boolean; rentMax: number; ratePct: number; sumMax: number },
+): RuleCheck {
+  const depositOk = o.depositInclusive ? listing.deposit <= o.depositMax : listing.deposit < o.depositMax;
+  const converted = Math.floor(((listing.deposit * o.ratePct) / 100 / 12) * 10) / 10;
+  const warnings =
+    listing.rent > o.rentMax && depositOk && listing.rent + converted <= o.sumMax
+      ? [`보증금·월세 환산 합계 ${o.sumMax}만원 이하인지 확인 필요`]
+      : [];
+  return { reasons: [], warnings };
+}
+
 /** 특정 정책 전용 조건 (열로 표현되지 않는 것) */
 export const EXTRA_RULES: Record<string, (u: UserInput, listing: { deposit: number; rent: number }) => RuleCheck> = {
   P08: (u, listing) => {
@@ -42,6 +60,14 @@ export const EXTRA_RULES: Record<string, (u: UserInput, listing: { deposit: numb
     if (listing.deposit + listing.rent * 100 > 20000) reasons.push("거래금액(보증금+월세×100) 2억 이하 매물");
     return { reasons, warnings };
   },
+  // 서울시 공고 제2026-1440호 4쪽 ㅇ(거주): 보증금 8천만원 이하 + 월세 60만원 초과 시
+  // 환산액(4.5%, '25.12. 기준) + 월세 90만원 이하면 신청 가능
+  P02: (_u, listing) =>
+    rentSumException(listing, { depositMax: 8000, depositInclusive: true, rentMax: 60, ratePct: 4.5, sumMax: 90 }),
+  // 광진구 공고 제2026-977호 2쪽 ○(거주), 3쪽 【보증금 월세 환산액】: 보증금 8천만원 미만 + 월세 60만원 초과 시
+  // 환산액(4.75%, 2026.7. 기준) + 월세 96만원 이하면 신청 가능
+  P03: (_u, listing) =>
+    rentSumException(listing, { depositMax: 8000, depositInclusive: false, rentMax: 60, ratePct: 4.75, sumMax: 96 }),
   P12: (u) => {
     const reasons: string[] = [];
     const warnings: string[] = [];

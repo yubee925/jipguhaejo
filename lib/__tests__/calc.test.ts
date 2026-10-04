@@ -111,6 +111,39 @@ describe("match", () => {
     const c = matchPolicy(pol({ policy_id: "C", benefit_monthly: 5, benefit_months: 10 }), user(), K, listing);
     expect(pickSupports([a, b, c], 55).map((s) => s.policyId)).toEqual(["A", "C"]);
   });
+
+  describe("P02·P03 보증금·월세 환산 합계 안내", () => {
+    const seoul = (id: string) => pol({ policy_id: id, max_age: 39, deposit_max: 8000, rent_max: 60 });
+    const sumWarn = (id: string, deposit: number, rent: number) =>
+      matchPolicy(seoul(id), user(), K, { deposit, rent }).warnings.filter((w) => w.includes("환산 합계"));
+
+    it("월세 60 초과여도 환산 합계가 상한 이하면 안내", () => {
+      // P02: 2000 × 4.5% ÷ 12 = 7.5 → 87.5 ≤ 90 (공고 예시1)
+      expect(sumWarn("P02", 2000, 80)).toEqual(["보증금·월세 환산 합계 90만원 이하인지 확인 필요"]);
+      // 경계: 7.5 + 82.5 = 90
+      expect(sumWarn("P02", 2000, 82.5)).toHaveLength(1);
+      // P03: 4000 × 4.75% ÷ 12 = 15.8 (천원 절사) → 85.8 ≤ 96 (공고 예시1)
+      expect(sumWarn("P03", 4000, 70)).toEqual(["보증금·월세 환산 합계 96만원 이하인지 확인 필요"]);
+    });
+
+    it("환산 합계가 상한을 넘거나 예외 대상이 아니면 안내 없음", () => {
+      expect(sumWarn("P02", 4000, 80)).toEqual([]); // 15 + 80 = 95 > 90 (공고 예시2)
+      expect(sumWarn("P03", 5000, 80)).toEqual([]); // 19.7 + 80 = 99.7 > 96 (공고 예시2)
+      expect(sumWarn("P02", 1000, 55)).toEqual([]); // 월세 60 이하는 예외 조건 대상 아님
+      expect(sumWarn("P02", 9000, 65)).toEqual([]); // 보증금 8천만원 초과
+      expect(sumWarn("P03", 8000, 61)).toEqual([]); // P03 은 보증금 8천만원 "미만"
+      expect(sumWarn("P01", 2000, 80)).toEqual([]); // 다른 정책에는 적용 안 함
+    });
+
+    it("판정(bucket·reasons)은 바꾸지 않음", () => {
+      for (const [id, deposit, rent] of [["P02", 2000, 80], ["P03", 4000, 70], ["P02", 1000, 55]] as const) {
+        const withRule = matchPolicy(seoul(id), user(), K, { deposit, rent });
+        const without = matchPolicy(seoul("PX"), user(), K, { deposit, rent });
+        expect(withRule.bucket).toBe(without.bucket);
+        expect(withRule.reasons).toEqual(without.reasons);
+      }
+    });
+  });
 });
 
 describe("diagnose", () => {
