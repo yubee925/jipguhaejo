@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { colorBuckets, convertedRent, dongBase, expectedRent, median, realMonthly, recognizedSupport, round2, yearlyCost } from "../calc";
 import { compareDongs, diagnoseDong } from "../diagnose";
+import { loadPolicies } from "../data";
 import { incomeOk, matchPolicy, pickSupports } from "../match";
-import type { Constants, Policy, RentRecord, UserInput } from "../types";
+import type { Constants, MatchResult, Policy, RentRecord, UserInput } from "../types";
 
 const R = 0.05;
 const K: Constants = { MEDIAN_1P: 256.4238, URBAN_1P: 381.3363, CONVERSION_RATE: 5 };
@@ -113,13 +114,14 @@ describe("match", () => {
   });
 
   it("큰 것부터 하나씩이 아니라 충돌 없는 조합 중 총지원액이 가장 큰 조합", () => {
-    // 실제 정책 구조: P01(20×24=480)은 P03·P12와 함께 못 받고, P03(20×12=240)+P12(36.9×12=442.8)=682.8 은 함께 받을 수 있다
-    const p01 = matchPolicy(pol({ policy_id: "P01", benefit_monthly: 20, benefit_months: 24, exclusive_with: ["P02", "P03", "P12"] }), user(), K, listing);
-    const p03 = matchPolicy(pol({ policy_id: "P03", benefit_monthly: 20, benefit_months: 12, exclusive_with: ["P01", "P02"] }), user(), K, listing);
-    const p12 = matchPolicy(pol({ policy_id: "P12", category_code: "BENEFIT", benefit_monthly: 36.9, benefit_months: 12, exclusive_with: ["P02", "P08"] }), user(), K, listing);
-    const picked = pickSupports([p01, p03, p12], 55);
-    expect(picked.map((s) => s.policyId).sort()).toEqual(["P03", "P12"]);
-    expect(picked.reduce((a, s) => a + s.monthly * s.months, 0)).toBeCloseTo(682.8);
+    // 실제 정책과 무관한 가짜 정책: X(20×24=480)는 Y·Z와 함께 못 받고, Y(20×12=240)+Z(35×12=420)=660 은 함께 받을 수 있다.
+    // 하나씩 고르면 X(480)만 남지만 최적은 Y+Z(660)
+    const x = matchPolicy(pol({ policy_id: "X", benefit_monthly: 20, benefit_months: 24, exclusive_with: ["Y", "Z"] }), user(), K, listing);
+    const y = matchPolicy(pol({ policy_id: "Y", benefit_monthly: 20, benefit_months: 12, exclusive_with: ["X"] }), user(), K, listing);
+    const z = matchPolicy(pol({ policy_id: "Z", category_code: "BENEFIT", benefit_monthly: 35, benefit_months: 12, exclusive_with: ["X"] }), user(), K, listing);
+    const picked = pickSupports([x, y, z], 55);
+    expect(picked.map((s) => s.policyId).sort()).toEqual(["Y", "Z"]);
+    expect(picked.reduce((a, s) => a + s.monthly * s.months, 0)).toBe(660);
   });
 
   it("후보가 없으면 빈 조합, 모두 충돌하면 총액이 가장 큰 1개", () => {
@@ -127,6 +129,20 @@ describe("match", () => {
     const a = matchPolicy(pol({ policy_id: "A", benefit_monthly: 20, benefit_months: 12, exclusive_with: ["B"] }), user(), K, listing);
     const b = matchPolicy(pol({ policy_id: "B", benefit_monthly: 10, benefit_months: 30, exclusive_with: ["A"] }), user(), K, listing);
     expect(pickSupports([a, b], 55).map((s) => s.policyId)).toEqual(["B"]); // 240 < 300
+  });
+
+  it("실제 policies.csv: P03 과 P12 는 함께 선택되지 않는다 (광진구 공고 신청 제외 대상: 주거급여 수급자)", () => {
+    const real = loadPolicies();
+    const byId = (id: string) => real.find((p) => p.policy_id === id)!;
+    expect(byId("P03").exclusive_with).toContain("P12");
+    expect(byId("P12").exclusive_with).toContain("P03");
+    // 판정과 무관하게 둘 다 받을 수 있다고 가정해도 하나만 고른다
+    const asMatch = (p: Policy): MatchResult => ({ policy: p, eligible: true, reasons: [], warnings: [], bucket: "confirmed" });
+    expect(pickSupports([asMatch(byId("P03")), asMatch(byId("P12"))], 60).map((s) => s.policyId)).toEqual(["P12"]); // 36.9×12 > 20×12
+    // 월세 지원 정책(RENT·BENEFIT) 전부를 후보로 줘도 P03·P12 가 같이 들어가지 않는다
+    const all = real.filter((p) => p.category_code === "RENT" || p.category_code === "BENEFIT").map(asMatch);
+    const ids = pickSupports(all, 60).map((s) => s.policyId);
+    expect(ids.includes("P03") && ids.includes("P12")).toBe(false);
   });
 
   describe("P02·P03 보증금·월세 환산 합계 안내", () => {
