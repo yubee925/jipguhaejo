@@ -72,14 +72,14 @@ function summary(ctx: ExplainContext): string {
   const lines = [
     `${place}의 실질 월 주거비는 ${m(d.real)}입니다(${sampleLine(d)}).`,
     "",
-    `• 동 기준 주거비 ${m(d.base.C!)} = 대표 매물 월세 ${m(d.listing.rent)} + 보증금 ${formatManwon(d.listing.deposit)} 환산분(연 ${r}%)`,
+    `• 동 기준 주거비 ${m(d.base.C!)} = 대표 매물 월세 ${m(d.listing.rent)} + 대표 매물 보증금 ${formatManwon(d.listing.deposit)}의 환산분(연 ${r}%)`,
     d.S > 0
       ? `• 정책 지원 −${m(d.S)} (${d.supports.map((s) => nameOf(d, s.policyId)).join(", ")}), 절감률 ${Math.round(d.savingRate)}%`
       : "• 지금 바로 반영되는 월세 지원은 없습니다.",
     `• 3년 누적 ${formatManwon(d.yearly.total)} (지원 없으면 ${formatManwon(d.yearly.withoutSupport)})`,
   ];
   if (rank) lines.push(`• ${typeLabel(ctx.u.housingType)} 기준 ${DISTRICT} ${ctx.ranking.length}개 동 중 ${rank}번째로 저렴합니다.`);
-  lines.push("", "관리비는 별도이며, 예상 금액이고 최종 자격은 공고 기준입니다.");
+  lines.push("", "관리비는 계산에 포함되지 않았고, 예상 금액이며 최종 자격은 공고 기준입니다.");
   return lines.join("\n");
 }
 
@@ -125,7 +125,7 @@ function compareType(ctx: ExplainContext): string {
     `• 오피스텔: 실질 월 ${m(o.real)} (${sampleLine(o)})`,
     `• 연립·다세대: 실질 월 ${m(v.real)} (${sampleLine(v)})`,
     "",
-    "두 유형은 면적·관리비 구조가 다를 수 있고, 관리비는 계산에 넣지 않았습니다.",
+    "관리비는 계산에 포함되지 않았습니다.",
   ].join("\n");
 }
 
@@ -158,8 +158,14 @@ export function templateAnswer(intent: QuestionId | null, ctx: ExplainContext): 
 export function contextToPrompt(ctx: ExplainContext): string {
   const { u } = ctx;
   const pct = Math.round((u.monthlyIncome / ctx.k.MEDIAN_1P) * 100);
+  const d = ctx.diagnosis;
   return [
-    `지역: 서울 ${DISTRICT} ${ctx.dong} / 주택유형: ${typeLabel(u.housingType)} / 보유 보증금: ${u.myDeposit != null ? formatManwon(u.myDeposit) : "미입력"}`,
+    `지역: 서울 ${DISTRICT} ${ctx.dong} / 주택유형: ${typeLabel(u.housingType)}`,
+    // 대표 매물 보증금과 사용자 보유 보증금을 AI가 섞지 않도록 이름을 분명히 붙인다
+    d.available
+      ? `동 대표 매물(중앙값 기준): 월세 ${m(d.listing.rent)}, 보증금 ${formatManwon(d.listing.deposit)}`
+      : "동 대표 매물(중앙값 기준): 거래 없음",
+    `사용자 보유 보증금: ${u.myDeposit != null ? formatManwon(u.myDeposit) : "미입력"} (실질 주거비 계산에는 쓰지 않음, 예상 월세 계산에만 사용)`,
     `사용자: 만 ${u.age}세, 월소득 ${formatManwon(u.monthlyIncome)}(기준중위소득 ${pct}%), ${u.homeless ? "무주택" : "유주택"}, ${u.independent ? "독립거주" : "부모와 거주"}, ${u.single ? "1인 가구" : "2인 이상 가구"}`,
     // 취업 상태는 판정에 쓰지 않고 설명 문구 맞춤에만 쓴다 (input_fields.csv)
     `혼인: ${MARITAL.find((o) => o.value === u.marital)?.label ?? "미혼"} / 취업: ${JOB.find((o) => o.value === u.job)?.label ?? "-"} / 주민등록지: ${RESIDENT.find((o) => o.value === u.resident)?.label ?? "광진구"}`,
