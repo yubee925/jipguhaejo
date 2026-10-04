@@ -1,0 +1,4 @@
+policy_id,age_min,age_max,income_max,asset_max,deposit_max,rent_max,benefit_monthly,benefit_months
+P01,19,34,60,NONE,NONE,NONE,20,24
+P02,19,39,150,13000,8000,60,20,12
+P03,19,39,150,13000,8000,60,20,12
