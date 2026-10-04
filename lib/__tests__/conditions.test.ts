@@ -3,20 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Papa from "papaparse";
 import { describe, expect, it } from "vitest";
-import {
-  CURRENT_SUPPORT,
-  DEFAULT_CONDITIONS,
-  JOB,
-  MARITAL,
-  MOVED_IN,
-  PARENT_INCOME,
-  PARENT_REGION,
-  RESIDENT,
-  invalidConditions,
-  missingRequired,
-  toUserInput,
-  type Conditions,
-} from "../conditions";
+import { CURRENT_SUPPORT, DEFAULT_CONDITIONS, JOB, MARITAL, MOVED_IN, PARENT_INCOME, PARENT_REGION, RESIDENT, invalidConditions, isJsonObject, missingRequired, toUserInput, type Conditions } from "../conditions";
 
 const rows = Papa.parse<Record<string, string>>(
   fs.readFileSync(path.join(process.cwd(), "data", "input_fields.csv"), "utf-8").replace(/^﻿/, ""),
@@ -98,5 +85,15 @@ describe("API 입력 검증 (교수님 리뷰 2-2)", () => {
     expect(invalidConditions({ ...ok, monthlyIncome: "abc" })).toMatch("월소득");
     expect(invalidConditions({ ...ok, myDeposit: "-1" })).toMatch("보증금");
     expect(invalidConditions({ ...ok, housingType: "apartment" as never })).toMatch("주택유형");
+  });
+});
+
+describe("API 본문은 JSON 객체여야 함", () => {
+  it("객체만 통과", () => {
+    expect(isJsonObject({ question: "q", conditions: {} })).toBe(true);
+    expect(isJsonObject({})).toBe(true);
+  });
+  it("null·배열·숫자·문자열·불리언은 거부", () => {
+    for (const v of [null, [], [1, 2], 0, 42, "", "text", true]) expect(isJsonObject(v)).toBe(false);
   });
 });

@@ -42,7 +42,7 @@ function conditionText(p: Policy) {
 export default function PolicyList() {
   const { policies, diagnosis } = useApp();
   // 해당 여부는 선택한 동의 진단(대표 매물 기준) 결과를 그대로 쓴다
-  const matchOf = (id: string) => (diagnosis.available ? diagnosis.matches.find((m) => m.policy.policy_id === id) : undefined);
+  const matchOf = (id: string) => (diagnosis?.available ? diagnosis.matches.find((m) => m.policy.policy_id === id) : undefined);
   const byId = Object.fromEntries(policies.map((p) => [p.policy_id, p.name]));
 
   return (

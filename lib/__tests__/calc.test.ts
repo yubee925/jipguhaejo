@@ -112,6 +112,23 @@ describe("match", () => {
     expect(pickSupports([a, b, c], 55).map((s) => s.policyId)).toEqual(["A", "C"]);
   });
 
+  it("큰 것부터 하나씩이 아니라 충돌 없는 조합 중 총지원액이 가장 큰 조합", () => {
+    // 실제 정책 구조: P01(20×24=480)은 P03·P12와 함께 못 받고, P03(20×12=240)+P12(36.9×12=442.8)=682.8 은 함께 받을 수 있다
+    const p01 = matchPolicy(pol({ policy_id: "P01", benefit_monthly: 20, benefit_months: 24, exclusive_with: ["P02", "P03", "P12"] }), user(), K, listing);
+    const p03 = matchPolicy(pol({ policy_id: "P03", benefit_monthly: 20, benefit_months: 12, exclusive_with: ["P01", "P02"] }), user(), K, listing);
+    const p12 = matchPolicy(pol({ policy_id: "P12", category_code: "BENEFIT", benefit_monthly: 36.9, benefit_months: 12, exclusive_with: ["P02", "P08"] }), user(), K, listing);
+    const picked = pickSupports([p01, p03, p12], 55);
+    expect(picked.map((s) => s.policyId).sort()).toEqual(["P03", "P12"]);
+    expect(picked.reduce((a, s) => a + s.monthly * s.months, 0)).toBeCloseTo(682.8);
+  });
+
+  it("후보가 없으면 빈 조합, 모두 충돌하면 총액이 가장 큰 1개", () => {
+    expect(pickSupports([], 55)).toEqual([]);
+    const a = matchPolicy(pol({ policy_id: "A", benefit_monthly: 20, benefit_months: 12, exclusive_with: ["B"] }), user(), K, listing);
+    const b = matchPolicy(pol({ policy_id: "B", benefit_monthly: 10, benefit_months: 30, exclusive_with: ["A"] }), user(), K, listing);
+    expect(pickSupports([a, b], 55).map((s) => s.policyId)).toEqual(["B"]); // 240 < 300
+  });
+
   describe("P02·P03 보증금·월세 환산 합계 안내", () => {
     const seoul = (id: string) => pol({ policy_id: id, max_age: 39, deposit_max: 8000, rent_max: 60 });
     const sumWarn = (id: string, deposit: number, rent: number) =>

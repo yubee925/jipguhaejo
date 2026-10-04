@@ -129,6 +129,10 @@ export function missingRequired(c: Pick<Conditions, "age" | "monthlyIncome">): s
   return out;
 }
 
+/** API 본문이 JSON 객체인지 (null·배열·숫자·문자열·불리언은 아님) */
+export const isJsonObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
 /** API로 들어온 숫자 입력의 범위 검사. 문제가 있으면 안내 문구, 없으면 null */
 export function invalidConditions(c: Partial<Record<keyof Conditions, unknown>>): string | null {
   const missing = missingRequired({ age: c.age as string, monthlyIncome: c.monthlyIncome as string });

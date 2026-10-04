@@ -7,11 +7,12 @@ import { DISTRICT } from "@/lib/region";
 import AnimatedNumber from "../components/AnimatedNumber";
 import { useApp } from "../components/AppProvider";
 import MapCard from "../components/MapCard";
+import RequiredNotice from "../components/RequiredNotice";
 import { HOUSING_TYPE_LABEL } from "@/lib/conditions";
 
 export default function CompareView() {
-  const { geojson, comparison, conditions, selectDong, user } = useApp();
-  const { ranked } = comparison;
+  const { geojson, comparison, conditions, selectDong, user, missing } = useApp();
+  const ranked = comparison?.ranked ?? [];
   const current = ranked.find((x) => x.dong === conditions.dong);
   const cheapest = ranked[0];
   const typeLabel = HOUSING_TYPE_LABEL[user.housingType];
@@ -27,7 +28,8 @@ export default function CompareView() {
       <p className="rounded-xl bg-surface px-4 py-3 text-sm text-muted ring-1 ring-border">
         비교 조건:{" "}
         <span className="font-medium text-foreground">
-          만 {user.age}세 · 월소득 {formatManwon(user.monthlyIncome)} · {user.homeless ? "무주택" : "유주택"} · {typeLabel}
+          {missing.includes("나이") ? "나이 미입력" : `만 ${user.age}세`} · {missing.includes("월소득") ? "월소득 미입력" : `월소득 ${formatManwon(user.monthlyIncome)}`} ·{" "}
+          {user.homeless ? "무주택" : "유주택"} · {typeLabel}
         </span>{" "}
         <Link href="/diagnosis" className="ml-1 font-semibold text-accent hover:underline">
           조건 바꾸기
@@ -46,7 +48,12 @@ export default function CompareView() {
         </section>
       )}
 
-      <MapCard geojson={geojson} comparison={comparison} housingType={user.housingType} selected={conditions.dong} onSelect={selectDong} />
+      {/* 필수 입력(나이·월소득)이 비면 계산하지 않고 안내만 */}
+      {comparison ? (
+        <MapCard geojson={geojson} comparison={comparison} housingType={user.housingType} selected={conditions.dong} onSelect={selectDong} />
+      ) : (
+        <RequiredNotice missing={missing} />
+      )}
 
       {current && (
         <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">

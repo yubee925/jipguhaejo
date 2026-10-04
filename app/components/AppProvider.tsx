@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { FeatureCollection, Polygon } from "geojson";
-import { DEFAULT_CONDITIONS, toUserInput, type Conditions } from "@/lib/conditions";
+import { DEFAULT_CONDITIONS, missingRequired, toUserInput, type Conditions } from "@/lib/conditions";
 import { compareDongs, diagnoseDong } from "@/lib/diagnose";
 import type { Constants, Policy, RentRecord, UserInput } from "@/lib/types";
 
@@ -25,10 +25,12 @@ type AppState = SiteData & {
   setConditions: (next: Conditions) => void;
   selectDong: (dong: string) => void;
   user: UserInput;
-  /** 선택한 동 진단 */
-  diagnosis: Diagnosis;
-  /** 같은 조건으로 계산한 모든 동 (순위·지도 색) */
-  comparison: Comparison;
+  /** 비어 있는 필수 입력 (나이·월소득). 하나라도 있으면 결과를 계산하지 않는다 */
+  missing: string[];
+  /** 선택한 동 진단. 필수 입력이 비면 null (빈칸을 0으로 계산하지 않음) */
+  diagnosis: Diagnosis | null;
+  /** 같은 조건으로 계산한 모든 동 (순위·지도 색). 필수 입력이 비면 null */
+  comparison: Comparison | null;
 };
 
 const AppContext = createContext<AppState | null>(null);
@@ -42,8 +44,11 @@ export function AppProvider({ data, children }: { data: SiteData; children: Reac
 
   const derived = useMemo(() => {
     const user = toUserInput(conditions);
+    const missing = missingRequired(conditions);
+    if (missing.length) return { user, missing, diagnosis: null, comparison: null };
     return {
       user,
+      missing,
       diagnosis: diagnoseDong(user, conditions.dong, rent, policies, k),
       comparison: compareDongs(user, dongs, rent, policies, k),
     };

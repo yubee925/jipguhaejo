@@ -9,6 +9,7 @@ import { DISTRICT } from "@/lib/region";
 import AnimatedNumber from "../components/AnimatedNumber";
 import { useApp } from "../components/AppProvider";
 import ConditionForm from "../components/ConditionForm";
+import RequiredNotice from "../components/RequiredNotice";
 
 const PAGE = 12;
 const m1 = (v: number) => formatManwon(v, 1);
@@ -87,7 +88,7 @@ function ListingCard({ rec, rank, names }: { rec: Recommendation; rank: number; 
 }
 
 export default function RecommendView({ listings }: { listings: Listing[] }) {
-  const { conditions, setConditions, dongs, k, user, policies } = useApp();
+  const { conditions, setConditions, dongs, k, user, policies, missing } = useApp();
   const [dong, setDong] = useState("");
   const [maxMonthly, setMaxMonthly] = useState("");
   const [withinDeposit, setWithinDeposit] = useState(true);
@@ -95,15 +96,19 @@ export default function RecommendView({ listings }: { listings: Listing[] }) {
   const [shown, setShown] = useState(PAGE);
 
   const max = Number(maxMonthly);
+  // 필수 입력(나이·월소득)이 비면 빈칸을 0으로 계산하지 않도록 추천하지 않는다
+  const blank = missing.length > 0;
   const result = useMemo(
     () =>
-      recommend(listings, user, policies, k, {
-        dong: dong || undefined,
-        maxMonthly: maxMonthly && Number.isFinite(max) && max > 0 ? max : null,
-        withinDeposit,
-        includeUnusual,
-      }),
-    [listings, user, policies, k, dong, maxMonthly, max, withinDeposit, includeUnusual],
+      blank
+        ? null
+        : recommend(listings, user, policies, k, {
+            dong: dong || undefined,
+            maxMonthly: maxMonthly && Number.isFinite(max) && max > 0 ? max : null,
+            withinDeposit,
+            includeUnusual,
+          }),
+    [blank, listings, user, policies, k, dong, maxMonthly, max, withinDeposit, includeUnusual],
   );
   const names = useMemo(() => Object.fromEntries(policies.map((p) => [p.policy_id, p.name])), [policies]);
   const typeLabel = HOUSING_TYPE_LABEL[user.housingType];
@@ -168,41 +173,47 @@ export default function RecommendView({ listings }: { listings: Listing[] }) {
       </div>
 
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1 rounded-xl bg-surface px-4 py-3 text-sm ring-1 ring-border sm:flex-row sm:items-center sm:justify-between">
-          <span>
-            {dong ? `${DISTRICT} ${dong}` : `${DISTRICT} 전체`} {typeLabel} · 조건에 맞는 건물{" "}
-            <b className="tabular-nums">{result.items.length}</b>곳
-          </span>
-          <span className="text-xs text-muted">
-            실질 월 주거비 낮은 순
-            {!includeUnusual && result.unusual > 0 ? ` · 특수 계약 추정 ${result.unusual}건 제외` : ""}
-          </span>
-        </div>
-
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
-          최근 1년 국토교통부 월세 <b>실거래 사례</b>입니다. 지금 비어 있는 매물인지는 부동산이나 매물 앱에서 확인하세요. 금액은
-          예상치이며 최종 자격은 공고 기준, 관리비 별도입니다.
-        </p>
-
-        {result.items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center text-sm text-muted">
-            조건에 맞는 집이 없습니다. 월 최대 부담을 늘리거나, &ldquo;내 보증금 안에서만&rdquo;을 끄거나, 다른 동·유형을 골라 보세요.
-          </div>
+        {!result ? (
+          <RequiredNotice missing={missing} />
         ) : (
           <>
-            <ol className="flex flex-col gap-3">
-              {result.items.slice(0, shown).map((rec, i) => (
-                <ListingCard key={rec.listing.id} rec={rec} rank={i + 1} names={names} />
-              ))}
-            </ol>
-            {shown < result.items.length && (
-              <button
-                type="button"
-                onClick={() => setShown((n) => n + PAGE)}
-                className="self-center rounded-xl border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition hover:bg-background"
-              >
-                더 보기 ({result.items.length - shown}곳 남음)
-              </button>
+            <div className="flex flex-col gap-1 rounded-xl bg-surface px-4 py-3 text-sm ring-1 ring-border sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                {dong ? `${DISTRICT} ${dong}` : `${DISTRICT} 전체`} {typeLabel} · 조건에 맞는 건물{" "}
+                <b className="tabular-nums">{result.items.length}</b>곳
+              </span>
+              <span className="text-xs text-muted">
+                실질 월 주거비 낮은 순
+                {!includeUnusual && result.unusual > 0 ? ` · 특수 계약 추정 ${result.unusual}건 제외` : ""}
+              </span>
+            </div>
+
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+              최근 1년 국토교통부 월세 <b>실거래 사례</b>입니다. 지금 비어 있는 매물인지는 부동산이나 매물 앱에서 확인하세요. 금액은
+              예상치이며 최종 자격은 공고 기준, 관리비 별도입니다.
+            </p>
+
+            {result.items.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center text-sm text-muted">
+                조건에 맞는 집이 없습니다. 월 최대 부담을 늘리거나, &ldquo;내 보증금 안에서만&rdquo;을 끄거나, 다른 동·유형을 골라 보세요.
+              </div>
+            ) : (
+              <>
+                <ol className="flex flex-col gap-3">
+                  {result.items.slice(0, shown).map((rec, i) => (
+                    <ListingCard key={rec.listing.id} rec={rec} rank={i + 1} names={names} />
+                  ))}
+                </ol>
+                {shown < result.items.length && (
+                  <button
+                    type="button"
+                    onClick={() => setShown((n) => n + PAGE)}
+                    className="self-center rounded-xl border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition hover:bg-background"
+                  >
+                    더 보기 ({result.items.length - shown}곳 남음)
+                  </button>
+                )}
+              </>
             )}
           </>
         )}

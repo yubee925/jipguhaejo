@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { invalidConditions, toUserInput, type Conditions } from "@/lib/conditions";
+import { invalidConditions, isJsonObject, toUserInput, type Conditions } from "@/lib/conditions";
 import { listDongs, loadConstants, loadPolicies, loadRent } from "@/lib/data";
 import { DISTRICT } from "@/lib/region";
 import {
@@ -87,12 +87,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "요청이 너무 빠릅니다. 잠시 후 다시 질문해 주세요." }, { status: 429 });
   }
 
-  let body: { question?: unknown; questionId?: unknown; conditions?: unknown };
+  let raw: unknown;
   try {
-    body = await request.json();
+    raw = await request.json();
   } catch {
     return Response.json({ error: "JSON 본문이 필요합니다." }, { status: 400 });
   }
+  // null·배열·숫자·문자열도 JSON 으로는 파싱되므로 객체인지 따로 확인 (null 이면 body.question 에서 500 이 났음)
+  if (!isJsonObject(raw)) return Response.json({ error: "JSON 객체 본문이 필요합니다." }, { status: 400 });
+  const body: { question?: unknown; questionId?: unknown; conditions?: unknown } = raw;
 
   const question = typeof body.question === "string" ? body.question.trim().slice(0, MAX_QUESTION_LENGTH) : "";
   if (!question || typeof body.conditions !== "object" || body.conditions === null || Array.isArray(body.conditions)) {

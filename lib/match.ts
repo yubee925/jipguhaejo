@@ -105,7 +105,9 @@ export function matchPolicy(
 
 /**
  * 월 지원금 S 계산: 주어진 bucket 들의 RENT·BENEFIT 정책만 대상으로,
- * exclusive_with 로 묶인 정책끼리는 총 지원액이 큰 1개만 남긴다.
+ * exclusive_with 충돌이 없는 모든 조합을 비교해 총지원액(월 × 개월)이 가장 큰 조합을 고른다.
+ * (큰 것부터 하나씩 고르면 P01 480만원 하나 대신 P03+P12 682.8만원 같은 더 나은 조합을 놓친다)
+ * 후보는 월세 지원 정책 몇 개뿐(현재 최대 4개 → 16가지)이라 전체 조합 비교로 충분하다.
  */
 export function pickSupports(
   results: MatchResult[],
@@ -122,12 +124,18 @@ export function pickSupports(
     }))
     .sort((a, b) => b.monthly * b.months - a.monthly * a.months);
 
-  const chosen: typeof cands = [];
-  for (const c of cands) {
-    const clash = chosen.some((x) => x.excl.includes(c.policyId) || c.excl.includes(x.policyId));
-    if (!clash) chosen.push(c);
+  const clash = (x: (typeof cands)[number], y: (typeof cands)[number]) =>
+    x.excl.includes(y.policyId) || y.excl.includes(x.policyId);
+  const total = (set: typeof cands) => set.reduce((a, x) => a + x.monthly * x.months, 0);
+
+  let best: typeof cands = [];
+  for (let mask = 1; mask < 1 << cands.length; mask++) {
+    const set = cands.filter((_, i) => mask & (1 << i));
+    if (set.some((x, i) => set.slice(i + 1).some((y) => clash(x, y)))) continue;
+    // 총액이 같으면 먼저 찾은 조합(총액 큰 정책이 들어간 쪽)을 유지
+    if (total(set) > total(best)) best = set;
   }
-  return chosen.map(({ policyId, monthly, months }) => ({ policyId, monthly, months }));
+  return best.map(({ policyId, monthly, months }) => ({ policyId, monthly, months }));
 }
 
 export const sumMonthly = (s: MonthlySupport[]) => s.reduce((a, x) => a + x.monthly, 0);
