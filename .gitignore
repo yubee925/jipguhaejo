@@ -45,3 +45,7 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Finder 복사본 (예: "personas 2.ts") 실수 커밋 방지
+* 2.*
+* 2
