@@ -55,26 +55,31 @@ export default function PolicyList() {
         에 입력한 조건과 선택한 동의 대표 매물 기준입니다. &ldquo;공고 재확인 필요&rdquo; 표시가 있는 정책은 공고를 꼭 확인하세요.
       </p>
 
+      {/* 카드마다 4행(머리·조건 상자·안내 문구·버튼)을 subgrid 로 공유해 같은 줄 카드끼리 각 구역 높이를 맞춘다 */}
       <ul className="grid gap-4 md:grid-cols-2">
         {policies.map((p) => {
           const m = matchOf(p.policy_id);
           const badge = m ? BUCKET[m.bucket] : null;
           return (
-            <li key={p.policy_id} className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5">
+            <li key={p.policy_id} className="row-span-4 grid grid-rows-subgrid gap-y-3 rounded-2xl border border-border bg-surface p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-xs text-muted">
                     {LEVEL[p.level] ?? p.level} · {p.agency} · {CATEGORY[p.category_code]}
                   </div>
-                  <h2 className="mt-1 text-base font-bold leading-snug">{p.name}</h2>
-                  {p.verify_needed && (
-                    <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-800 ring-1 ring-amber-200">공고 재확인 필요</span>
-                  )}
+                  {/* 배지를 제목 옆에 두어 배지 유무와 상관없이 카드 머리 높이를 맞춘다 */}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h2 className="text-base font-bold leading-snug">{p.name}</h2>
+                    {p.verify_needed && (
+                      <span className="whitespace-nowrap rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-800 ring-1 ring-amber-200">공고 재확인 필요</span>
+                    )}
+                  </div>
                 </div>
                 {badge && <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${badge.tone}`}>{badge.label}</span>}
               </div>
 
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl bg-background p-3 text-xs">
+              {/* 상자는 옆 카드 높이만큼 늘어나도 안쪽 줄은 위에서부터 붙인다 */}
+              <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 rounded-xl bg-background p-3 text-xs">
                 <dt className="text-muted">지원</dt>
                 <dd className="font-medium">{supportText(p)}</dd>
                 <dt className="text-muted">조건</dt>
@@ -104,8 +109,8 @@ export default function PolicyList() {
                 {p.notes && <span className="text-muted">{p.notes}</span>}
               </div>
 
-              {/* 같은 줄 카드끼리 버튼 높이를 맞추도록 카드 맨 아래에 붙인다 */}
-              <div className="mt-auto">
+              {/* 4행(subgrid)이라 같은 줄 카드끼리 버튼 높이가 맞는다 */}
+              <div>
                 <PolicyApplyLink p={p} />
               </div>
             </li>
