@@ -19,6 +19,12 @@
 - 계약: 월세만 사용 (전세 제외). 정책이 월세 지원 중심이기 때문.
 - 범위 밖: 교통 접근성, 상권, 인구, 편의시설, 비수도권 비교 도시 (발표에서 확장 계획으로만 언급).
 
+## 기능 동결 (2026-10-06 ~ 마감)
+기준점: git 태그 `feature-freeze` (이 시점의 화면·기능이 발표 버전).
+- 허용: 버그 수정, 공식 출처로 확인한 정책 데이터 수정(data/), 문구·정렬 같은 표시 다듬기, 테스트·문서·발표 자료.
+- 금지: 새 화면·새 기능·새 입력 항목 추가, 계산식·판정 규칙 변경(버그 수정 제외), 큰 리팩터링, 새 라이브러리 추가.
+- 애매하면 고치기 전에 먼저 묻는다. 고친 뒤에는 npm test, npm run test:e2e, npm run build 를 모두 통과해야 커밋한다.
+
 ## 기술 스택
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - 지도: Leaflet + react-leaflet (OpenStreetMap 타일). Next.js에서는 dynamic import, ssr: false 로 불러온다.
